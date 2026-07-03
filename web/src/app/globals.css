@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/* Conclave brand tokens. See conclave/brand.md. Dark first. */
+@theme {
+  --color-ink: #0b0e14;
+  --color-surface: #141821;
+  --color-raised: #1b212c;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-fg: #e7e9ee;
+  --color-muted: #9aa3b2;
+  --color-ember: #e8a13a;
+  --color-ember-strong: #f2b457;
+  --color-yes: #3fb984;
+  --color-no: #e86b6b;
+
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-fraunces);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-fg);
+}
+
+/* Tabular figures for tallies and token amounts. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
