@@ -23,7 +23,9 @@ export function Header() {
   const onSepolia = chainId === SEPOLIA_CHAIN_ID;
 
   return (
-    <header className="border-b border-line">
+    // Structural glass: the header floats over scrolling ballots, so the
+    // translucency shows the overlap. Solid ink fallback when blur is unsupported.
+    <header className="sticky top-0 z-40 border-b border-line bg-ink supports-[backdrop-filter]:bg-ink/70 supports-[backdrop-filter]:backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2.5">
           <SealMark />
