@@ -23,6 +23,13 @@ const config: HardhatUserConfig = {
     apiKey: {
       sepolia: vars.get("ETHERSCAN_API_KEY", ""),
     },
+    // Without a key the etherscan provider aborts the verify task; disable it
+    // until ETHERSCAN_API_KEY is set so sourcify can run on its own.
+    enabled: vars.get("ETHERSCAN_API_KEY", "") !== "",
+  },
+  // Sourcify verification needs no API key.
+  sourcify: {
+    enabled: true,
   },
   gasReporter: {
     currency: "USD",
