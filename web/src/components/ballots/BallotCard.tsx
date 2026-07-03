@@ -1,5 +1,9 @@
 "use client";
 
+import { Check, Clock, Copy, Lock } from "lucide-react";
+import { useState } from "react";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { microLabelClasses } from "@/components/ui/field";
 import { BALLOT_ADDRESS } from "@/lib/addresses";
 import { castVote, closeBallot, executePayout, resolveBallot, type BallotActionContext } from "@/lib/ballots/actions";
 import { BallotState, type BallotView } from "@/lib/ballots/useBallots";
@@ -9,46 +13,77 @@ import { useAsyncAction } from "@/lib/useAsyncAction";
 import { useOnchainClients } from "@/lib/useOnchainClients";
 
 function StateBadge({ ballot }: { ballot: BallotView }) {
-  if (ballot.state === BallotState.Resolved) {
-    return ballot.passed ? (
-      <span className="rounded-full border border-yes/40 px-2.5 py-0.5 text-xs text-yes">Passed</span>
-    ) : (
-      <span className="rounded-full border border-no/40 px-2.5 py-0.5 text-xs text-no">Rejected</span>
-    );
-  }
-  if (ballot.state === BallotState.Revealing) {
-    return <span className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">Revealing</span>;
-  }
-  return <span className="rounded-full border border-ember/40 px-2.5 py-0.5 text-xs text-ember">Active</span>;
+  const badge =
+    ballot.state === BallotState.Resolved
+      ? ballot.passed
+        ? { label: "Passed", dot: "bg-yes", text: "text-yes", border: "border-yes/30" }
+        : { label: "Rejected", dot: "bg-no", text: "text-no", border: "border-no/30" }
+      : ballot.state === BallotState.Revealing
+        ? { label: "Sealed", dot: "bg-muted", text: "text-muted", border: "border-line" }
+        : { label: "Voting", dot: "bg-ember", text: "text-ember", border: "border-ember/30" };
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${badge.border} ${badge.text}`}
+    >
+      <span className={`inline-block size-1.5 rounded-full ${badge.dot}`} aria-hidden="true" />
+      {badge.label}
+    </span>
+  );
 }
 
-function ActionButton({
-  label,
-  pendingLabel,
-  isPending,
-  disabled,
-  onClick,
-  tone = "ember",
-}: {
-  label: string;
-  pendingLabel: string;
-  isPending: boolean;
-  disabled: boolean;
-  onClick: () => void;
-  tone?: "ember" | "quiet";
-}) {
-  const toneClasses =
-    tone === "ember"
-      ? "bg-ember text-ink hover:bg-ember-strong"
-      : "border border-line text-fg hover:border-ember/50";
+/// Beneficiary address with click-to-copy and a transient "copied" state.
+function BeneficiaryChip({ address }: { address: `0x${string}` }) {
+  const [hasCopied, setHasCopied] = useState(false);
+
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setHasCopied(true);
+      // Transient feedback per craft rules; reverts after 1.5 s.
+      setTimeout(() => setHasCopied(false), 1500);
+    } catch {
+      // Clipboard denied (permissions): the title tooltip still exposes the address.
+    }
+  };
+
   return (
     <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${toneClasses}`}
+      onClick={() => void copyAddress()}
+      title={address}
+      className="tabular inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted transition-colors duration-100 ease-soft hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70"
     >
-      {isPending ? pendingLabel : label}
+      {shortenAddress(address)}
+      {hasCopied ? (
+        <Check size={12} className="text-yes" aria-hidden="true" />
+      ) : (
+        <Copy size={12} aria-hidden="true" />
+      )}
+      <span className="sr-only">{hasCopied ? "Address copied" : "Copy beneficiary address"}</span>
     </button>
+  );
+}
+
+/// The reveal moment: a proportional yes/no bar, only shown once resolved.
+function TallyBar({ yesVotes, noVotes }: { yesVotes: bigint; noVotes: bigint }) {
+  const total = Number(yesVotes) + Number(noVotes);
+  const yesShare = total === 0 ? 0 : (Number(yesVotes) / total) * 100;
+  return (
+    <div>
+      <div className="flex h-1.5 overflow-hidden rounded-full bg-raised" role="presentation">
+        <div className="bg-yes" style={{ width: `${yesShare}%` }} />
+        <div className="bg-no" style={{ width: `${100 - yesShare}%` }} />
+      </div>
+      <div className="mt-2.5 flex items-baseline gap-5 text-sm">
+        <span className="tabular inline-flex items-center gap-1.5 text-yes">
+          <span className="inline-block size-1.5 rounded-full bg-yes" aria-hidden="true" />
+          {yesVotes.toString()} yes
+        </span>
+        <span className="tabular inline-flex items-center gap-1.5 text-no">
+          <span className="inline-block size-1.5 rounded-full bg-no" aria-hidden="true" />
+          {noVotes.toString()} no
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -84,46 +119,65 @@ export function BallotCard({
     };
   };
 
-  const runBallotAction = (key: string, performAction: (context: BallotActionContext) => Promise<{ ok: true } | Failure>) =>
-    run(key, withContext(performAction), { onSuccess: onChanged });
+  const runBallotAction = (
+    key: string,
+    performAction: (context: BallotActionContext) => Promise<{ ok: true } | Failure>,
+  ) => run(key, withContext(performAction), { onSuccess: onChanged });
 
   return (
-    <article className="rounded-lg border border-line bg-surface p-5">
+    <article className="rounded-lg border border-line bg-surface p-5 transition-colors duration-100 ease-soft hover:border-white/15">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-serif text-lg leading-snug">{ballot.description}</p>
-          <p className="mt-1 text-xs text-muted">
-            Ballot #{ballot.id.toString()} · beneficiary{" "}
-            <span className="tabular">{shortenAddress(ballot.beneficiary)}</span> · payout amount confidential
-          </p>
-        </div>
+        <p className="font-serif text-lg leading-snug tracking-tight">{ballot.description}</p>
         <StateBadge ballot={ballot} />
       </div>
 
-      {ballot.state === BallotState.Resolved ? (
-        <div className="mt-4 flex items-center gap-6 text-sm">
-          <span className="tabular text-yes">{ballot.yesVotes.toString()} yes</span>
-          <span className="tabular text-no">{ballot.noVotes.toString()} no</span>
-          {ballot.passed ? (
-            <span className="text-muted">{ballot.executed ? "Confidential payout sent." : "Payout pending."}</span>
-          ) : (
-            <span className="text-muted">No payout.</span>
-          )}
-        </div>
-      ) : (
-        <p className="mt-4 text-sm text-muted">
-          {votingIsOpen
-            ? `Votes are encrypted on-chain. ${timeLeftLabel ?? ""} (closes ${formatUnixTime(ballot.endTime)})`
-            : waitingForClose
-              ? "Voting has ended. Close the ballot to expose the tallies for decryption."
-              : "Tallies are exposed. Reveal the result to bring the cleartext on-chain."}
-        </p>
-      )}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className={microLabelClasses}>Ballot {ballot.id.toString()}</span>
+        <span className="text-line" aria-hidden="true">
+          &middot;
+        </span>
+        <span className={microLabelClasses}>Beneficiary</span>
+        <BeneficiaryChip address={ballot.beneficiary} />
+        <span className="text-line" aria-hidden="true">
+          &middot;
+        </span>
+        <span className={`${microLabelClasses} inline-flex items-center gap-1`}>
+          <Lock size={11} aria-hidden="true" />
+          Payout sealed
+        </span>
+      </div>
+
+      <div className="mt-4">
+        {ballot.state === BallotState.Resolved ? (
+          <div className="space-y-2.5">
+            <TallyBar yesVotes={ballot.yesVotes} noVotes={ballot.noVotes} />
+            <p className="text-sm text-muted">
+              {ballot.passed
+                ? ballot.executed
+                  ? "Confidential payout sent to the beneficiary."
+                  : "Passed. The confidential payout is ready to send."
+                : "Rejected. The treasury keeps its funds."}
+            </p>
+          </div>
+        ) : votingIsOpen ? (
+          <p className="inline-flex items-center gap-2 text-sm text-muted">
+            <Clock size={14} className="shrink-0 text-ember" aria-hidden="true" />
+            {timeLeftLabel ?? "Closing soon"} &middot; closes {formatUnixTime(ballot.endTime)}
+          </p>
+        ) : waitingForClose ? (
+          <p className="text-sm text-muted">Voting has ended. Close the ballot to seal the tallies for decryption.</p>
+        ) : (
+          <p className="text-sm text-muted">Tallies are sealed. Reveal the result to bring the cleartext on-chain.</p>
+        )}
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {votingIsOpen &&
           (ballot.viewerHasVoted ? (
-            <span className="text-sm text-muted">Your encrypted vote is in.</span>
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+              <Check size={14} className="text-yes" aria-hidden="true" />
+              Your encrypted vote is in.
+            </span>
           ) : (
             <>
               <ActionButton
@@ -131,7 +185,9 @@ export function BallotCard({
                 pendingLabel="Encrypting vote..."
                 isPending={pendingKey === "vote-yes"}
                 disabled={isPending || !isConnected}
-                onClick={() => runBallotAction("vote-yes", (context) => castVote(context, { ballotId: ballot.id, support: true }))}
+                onClick={() =>
+                  runBallotAction("vote-yes", (context) => castVote(context, { ballotId: ballot.id, support: true }))
+                }
               />
               <ActionButton
                 label="Vote no"
@@ -139,7 +195,9 @@ export function BallotCard({
                 isPending={pendingKey === "vote-no"}
                 disabled={isPending || !isConnected}
                 tone="quiet"
-                onClick={() => runBallotAction("vote-no", (context) => castVote(context, { ballotId: ballot.id, support: false }))}
+                onClick={() =>
+                  runBallotAction("vote-no", (context) => castVote(context, { ballotId: ballot.id, support: false }))
+                }
               />
             </>
           ))}
@@ -175,7 +233,11 @@ export function BallotCard({
         )}
       </div>
 
-      {error && <p className="mt-3 text-sm text-no">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-no">
+          {error}
+        </p>
+      )}
     </article>
   );
 }

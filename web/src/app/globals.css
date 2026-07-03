@@ -16,11 +16,23 @@
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
+
+  /* One system easing curve for the whole product (design-taste: never ship
+     the default CSS ease). Ease-out shape: enters decelerate. */
+  --ease-soft: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 body {
-  background-color: var(--color-ink);
+  /* Faint ember light at the top of the room: the single decorative move,
+     6% opacity so it reads as atmosphere, not a gradient hero. */
+  background:
+    radial-gradient(1100px 480px at 50% -12%, rgba(232, 161, 58, 0.07), transparent 60%),
+    var(--color-ink);
   color: var(--color-fg);
+}
+
+::selection {
+  background-color: rgba(232, 161, 58, 0.3);
 }
 
 /* Tabular figures for tallies and token amounts. */

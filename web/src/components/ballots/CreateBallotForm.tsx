@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { getAddress, isAddress, parseUnits } from "viem";
 import { useReadContract } from "wagmi";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { inputClasses, microLabelClasses, textareaClasses } from "@/components/ui/field";
 import { ConfidentialGovTokenAbi } from "@/lib/abi/ConfidentialGovToken";
 import { BALLOT_ADDRESS, GOV_TOKEN_ADDRESS } from "@/lib/addresses";
 import { createBallot, MAX_DESCRIPTION_LENGTH } from "@/lib/ballots/actions";
@@ -21,9 +23,6 @@ const DURATION_CHOICES = [
 
 // Positive decimal number, e.g. "10" or "2.5".
 const AMOUNT_PATTERN = /^[0-9]+(\.[0-9]+)?$/;
-
-const inputClasses =
-  "w-full rounded-md border border-line bg-ink px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:border-ember/60 focus:outline-none";
 
 export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
   const { requireWriteClients, isConnected } = useOnchainClients();
@@ -77,31 +76,31 @@ export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
         void run("create", submitCreateBallot, { onSuccess: onCreated });
       }}
     >
-      <h2 className="font-serif text-lg">New ballot</h2>
-      <p className="mt-1 text-xs text-muted">
-        The payout amount is encrypted before it leaves this page. If the ballot passes, the beneficiary is paid that
-        confidential amount from the treasury.
+      <h2 className="font-serif text-lg tracking-tight">New ballot</h2>
+      <p className="mt-1.5 text-sm text-muted">
+        The payout is encrypted before it leaves this page. If the ballot passes, the beneficiary receives that sealed
+        amount from the treasury.
       </p>
 
-      <div className="mt-4 space-y-3">
-        <label className="block text-sm">
-          <span className="text-muted">Question</span>
+      <div className="mt-5 space-y-4">
+        <label className="block">
+          <span className={microLabelClasses}>Question</span>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             maxLength={MAX_DESCRIPTION_LENGTH}
-            rows={2}
+            rows={3}
             placeholder="Fund the community grant?"
-            className={`mt-1 resize-none ${inputClasses}`}
+            className={`mt-1.5 ${textareaClasses}`}
           />
         </label>
 
-        <label className="block text-sm">
-          <span className="text-muted">Voting window</span>
+        <label className="block">
+          <span className={microLabelClasses}>Voting window</span>
           <select
             value={durationSeconds.toString()}
             onChange={(event) => setDurationSeconds(BigInt(event.target.value))}
-            className={`mt-1 ${inputClasses}`}
+            className={`mt-1.5 cursor-pointer ${inputClasses}`}
           >
             {DURATION_CHOICES.map((choice) => (
               <option key={choice.label} value={choice.seconds.toString()}>
@@ -111,39 +110,48 @@ export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
           </select>
         </label>
 
-        <label className="block text-sm">
-          <span className="text-muted">Beneficiary address</span>
+        <label className="block">
+          <span className={microLabelClasses}>Beneficiary address</span>
           <input
             value={beneficiary}
             onChange={(event) => setBeneficiary(event.target.value)}
             placeholder="0x..."
             spellCheck={false}
-            className={`mt-1 tabular ${inputClasses}`}
+            autoComplete="off"
+            className={`mt-1.5 tabular ${inputClasses}`}
           />
         </label>
 
-        <label className="block text-sm">
-          <span className="text-muted">Confidential payout (cGOV)</span>
+        <label className="block">
+          <span className={microLabelClasses}>Sealed payout (cGOV)</span>
           <input
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             placeholder="100"
             inputMode="decimal"
-            className={`mt-1 tabular ${inputClasses}`}
+            autoComplete="off"
+            className={`mt-1.5 tabular ${inputClasses}`}
           />
         </label>
       </div>
 
-      <button
-        type="submit"
-        disabled={isPending || !isConnected}
-        className="mt-4 w-full rounded-md bg-ember px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-ember-strong disabled:opacity-50"
-      >
-        {isPending ? "Encrypting and creating..." : "Create ballot"}
-      </button>
+      <div className="mt-5">
+        <ActionButton
+          type="submit"
+          label="Create ballot"
+          pendingLabel="Encrypting and creating..."
+          isPending={isPending}
+          disabled={!isConnected}
+          fullWidth
+        />
+      </div>
 
-      {!isConnected && <p className="mt-2 text-xs text-muted">Connect a wallet to create a ballot.</p>}
-      {error && <p className="mt-3 text-sm text-no">{error}</p>}
+      {!isConnected && <p className="mt-2.5 text-xs text-muted">Connect a wallet to create a ballot.</p>}
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-no">
+          {error}
+        </p>
+      )}
     </form>
   );
 }
