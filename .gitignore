@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Next.js (web/)
+web/.next/
+web/out/
+web/build/
+web/next-env.d.ts
+
+# Hardhat (contracts/)
+contracts/artifacts/
+contracts/cache/
+contracts/coverage/
+contracts/coverage.json
+contracts/types/
+contracts/fhevmTemp/
+contracts/dist/
+
+# Env and secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Logs and OS files
+*.log
+.DS_Store
+
+# Agent scratch
+.scratch/
