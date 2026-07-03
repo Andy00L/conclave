@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Explicit empty Turbopack config: tells Next 16 the webpack block below is
-  // intentional (local fallback only), otherwise the Turbopack build aborts.
+  // Production builds use webpack (`next build --webpack`): the Turbopack
+  // build deadlocks on this project (reproduced locally and on Vercel, worker
+  // stuck at 0 CPU). The empty turbopack config keeps `next dev` (Turbopack)
+  // from aborting over the webpack block below.
   turbopack: {},
-  // Only applies to `next build --webpack` (the Turbopack fallback). wagmi's
+  // Applies to every `next build --webpack` (the production path). wagmi's
   // connector barrel pulls optional wallet packages (porto, tempo accounts)
   // that are not installed; Turbopack ignores the unresolved optionals but
   // webpack fails the build. This app only uses the injected connector, so
