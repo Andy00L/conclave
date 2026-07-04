@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
       "porto/internal": false,
       porto: false,
       accounts: false,
+      "@safe-global/safe-apps-provider": false,
+      "@safe-global/safe-apps-sdk": false,
+      "@walletconnect/ethereum-provider": false,
+      "@base-org/account": false,
+      "@coinbase/wallet-sdk": false,
+      "@metamask/connect-evm": false,
     };
     return config;
   },

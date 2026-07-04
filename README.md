@@ -20,8 +20,7 @@ that never appears in clear.
   <img src="https://img.shields.io/badge/license-BSD--3--Clause--Clear-555555" alt="license: BSD-3-Clause-Clear">
 </p>
 
-> Live demo and screenshots are being captured. Until then the app runs locally
-> against the Sepolia contracts listed below (see [Reproduce it](#-reproduce-it)).
+![The Conclave dashboard on Sepolia: an open encrypted ballot and a resolved one](docs/screenshots/01-dashboard.png)
 
 ## 🎯 The problem
 
@@ -95,6 +94,12 @@ less than the payout, ERC-7984 transfers what is available rather than reverting
 | Resolved | `resolve` | yes and no counts, `passed` | the payout amount |
 | Paid | `execute` | that a payout happened (`PayoutExecuted`) | the payout amount and the beneficiary balance |
 
+Every state above, live on Sepolia with real encrypted votes (one ballot open,
+one passed and paid, one rejected):
+
+<img src="docs/screenshots/02-ballots-full.png" width="900" alt="All ballot lifecycle states in the app: voting open, passed with confidential payout sent, rejected">
+
+
 ## 🔗 Live on Sepolia
 
 Deployed 2026-07-03 on Ethereum Sepolia.
@@ -108,6 +113,11 @@ Evidence:
 
 - The ballot contract is live on Sepolia (bytecode present, deployed one day
   before this writing): [view on Etherscan](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53).
+- Ballot 4, "Fund the Q3 open-source grant round", is open for a week: connect
+  a Sepolia wallet and cast an encrypted vote yourself. Ballot 2 resolved 2 to 1
+  and its 750 cGOV payout was executed confidentially; ballot 3 resolved 1 to 2
+  and paid nothing. All staged by
+  [contracts/scripts/stage-demo.ts](contracts/scripts/stage-demo.ts).
 - The full lifecycle is covered by 12 passing tests that run offline against the
   FHEVM mock, including a vote of two yes and one no that reveals `passed` and
   pays the beneficiary exactly the encrypted amount:

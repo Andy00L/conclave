@@ -39,6 +39,7 @@
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
     "@types/chai": "^4.3.20",
+    "@types/minimatch": "5.1.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.19.30",
     "@zama-fhe/relayer-sdk": "0.4.1",
@@ -83,6 +84,8 @@
     "chain": "hardhat node --network hardhat",
     "deploy:localhost": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "stage:sepolia": "hardhat run scripts/stage-demo.ts --network sepolia",
+    "finish:sepolia": "cross-env STAGE_PHASE=finish hardhat run scripts/stage-demo.ts --network sepolia",
     "verify:sepolia": "hardhat verify --network sepolia"
   },
   "overrides": {
