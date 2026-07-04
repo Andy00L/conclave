@@ -6,6 +6,7 @@ import { formatUnits, parseUnits } from "viem";
 import { useReadContract } from "wagmi";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { inputClasses, microLabelClasses } from "@/components/ui/field";
+import { SealedChip } from "@/components/ui/SealedChip";
 import { ConfidentialGovTokenAbi } from "@/lib/abi/ConfidentialGovToken";
 import { BALLOT_ADDRESS, GOV_TOKEN_ADDRESS } from "@/lib/addresses";
 import type { Failure } from "@/lib/result";
@@ -65,7 +66,7 @@ export function TreasuryCard() {
   });
 
   return (
-    <section className="rounded-lg border border-line bg-surface p-5">
+    <section className="card p-5">
       <div className="flex items-center gap-2">
         <LockKeyhole size={15} className="text-ember" aria-hidden="true" />
         <h2 className="font-serif text-lg tracking-tight">Treasury</h2>
@@ -110,14 +111,11 @@ export function TreasuryCard() {
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">
             <span className={microLabelClasses}>Your balance</span>
-            <p className="mt-0.5">
+            <p className="mt-1">
               {decryptedBalance !== undefined && decimals !== undefined ? (
-                <span className="tabular text-fg">{formatUnits(decryptedBalance, decimals)} cGOV</span>
+                <span className="tabular font-mono text-fg">{formatUnits(decryptedBalance, decimals)} cGOV</span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-muted">
-                  <LockKeyhole size={12} aria-hidden="true" />
-                  encrypted
-                </span>
+                <SealedChip label="balance" />
               )}
             </p>
           </div>

@@ -70,7 +70,7 @@ export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form
-      className="rounded-lg border border-line bg-surface p-5"
+      className="card p-5"
       onSubmit={(event) => {
         event.preventDefault();
         void run("create", submitCreateBallot, { onSuccess: onCreated });

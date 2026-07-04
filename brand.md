@@ -8,17 +8,16 @@ Dark first. An ink background, off-white text, and a single warm ember accent th
 
 ## Color tokens (dark)
 
-- ink (background): #0B0E14
-- surface: #141821
-- surface-raised: #1B212C
-- border: rgba(255, 255, 255, 0.08)
-- text: #E7E9EE
-- text-muted: #9AA3B2
-- ember (primary accent): #E8A13A
-- ember-strong (hover): #F2B457
-- yes (passed): #3FB984
-- no (failed): #E86B6B
-- focus ring: #E8A13A
+The full sheet lives in docs/UI_DESIGN_SYSTEM.md and web/src/app/globals.css;
+these are the roles:
+
+- ink (field): #0B0E14, always layered with two ember radials and a vignette
+- surface: #12161E, raised: #1A1F2A (elevation = lightness steps)
+- line: rgba(255,255,255,0.07), line-strong: rgba(255,255,255,0.14)
+- text: #E9EBF0, muted: #9AA3B2, faint: #737E8F
+- ember (only saturated accent): #E8A13A, strong #F2B457, deep #A06618
+- yes / no (verdicts only): #3FB984 / #E86B6B
+- focus ring: ember at 70%
 
 ## Typography
 

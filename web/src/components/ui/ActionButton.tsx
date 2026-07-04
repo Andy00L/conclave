@@ -1,17 +1,20 @@
 "use client";
 
 // The one button used across the app: consistent radius, 40px hit target,
-// ember focus ring, sub-100ms press feedback. Two tones only, so the primary
-// action always stands alone on a surface.
+// ember focus ring, sub-100ms press feedback (scale 0.98, never lower).
 const BASE_CLASSES =
-  "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md px-4 text-sm font-medium " +
-  "transition-colors duration-100 ease-soft active:translate-y-px " +
+  "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-medium " +
+  "transition-[background-color,border-color,box-shadow,transform] duration-100 ease-soft active:scale-[0.98] " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface " +
   "disabled:pointer-events-none disabled:opacity-50";
 
+// Primary carries the only saturated fill on screen: a lit ember gradient
+// with a top edge, deepening slightly on hover instead of just brightening.
 const TONE_CLASSES = {
-  ember: "bg-ember text-ink hover:bg-ember-strong",
-  quiet: "border border-line text-fg hover:border-ember/40 hover:text-ember-strong",
+  ember:
+    "bg-gradient-to-b from-ember-strong to-ember text-ink shadow-btn-ember " +
+    "hover:from-ember-strong hover:to-ember-strong",
+  quiet: "border border-line bg-raised/40 text-fg hover:border-line-strong hover:text-ember-strong",
 } as const;
 
 export function ActionButton({

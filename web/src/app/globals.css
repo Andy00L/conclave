@@ -1,15 +1,18 @@
 @import "tailwindcss";
 
-/* Conclave brand tokens. See conclave/brand.md. Dark first. */
+/* Conclave tokens. Source of truth: docs/UI_DESIGN_SYSTEM.md. Dark only. */
 @theme {
   --color-ink: #0b0e14;
-  --color-surface: #141821;
-  --color-raised: #1b212c;
-  --color-line: rgba(255, 255, 255, 0.08);
-  --color-fg: #e7e9ee;
+  --color-surface: #12161e;
+  --color-raised: #1a1f2a;
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-line-strong: rgba(255, 255, 255, 0.14);
+  --color-fg: #e9ebf0;
   --color-muted: #9aa3b2;
+  --color-faint: #737e8f;
   --color-ember: #e8a13a;
   --color-ember-strong: #f2b457;
+  --color-ember-deep: #a06618;
   --color-yes: #3fb984;
   --color-no: #e86b6b;
 
@@ -17,17 +20,22 @@
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-geist-mono);
 
-  /* One system easing curve for the whole product (design-taste: never ship
-     the default CSS ease). Ease-out shape: enters decelerate. */
-  --ease-soft: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Motion tokens (docs/UI_DESIGN_SYSTEM.md): enter decelerates, exit
+     accelerates, one family everywhere. */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
 body {
-  /* Faint ember light at the top of the room: the single decorative move,
-     6% opacity so it reads as atmosphere, not a gradient hero. */
+  /* The committed field: a sealed chamber lit by one ember. Two low-alpha
+     ember radials plus a feathered vignette; never a flat accidental dark. */
   background:
-    radial-gradient(1100px 480px at 50% -12%, rgba(232, 161, 58, 0.07), transparent 60%),
+    radial-gradient(1200px 540px at 50% -12%, rgba(232, 161, 58, 0.09), transparent 62%),
+    radial-gradient(1000px 700px at 88% 112%, rgba(232, 161, 58, 0.045), transparent 60%),
+    radial-gradient(140% 100% at 50% 50%, transparent 58%, rgba(0, 0, 0, 0.32) 100%),
     var(--color-ink);
+  background-attachment: fixed;
   color: var(--color-fg);
 }
 
@@ -35,7 +43,87 @@ body {
   background-color: rgba(232, 161, 58, 0.3);
 }
 
-/* Tabular figures for tallies and token amounts. */
+@layer components {
+  /* The one material: the obsidian card. Dark elevation = a lightness step,
+     a lit top edge, and a layered shadow stack (never one flat shadow). */
+  .card {
+    border-radius: 14px;
+    border: 1px solid var(--color-line);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 45%),
+      var(--color-surface);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 1px 2px rgba(0, 0, 0, 0.35),
+      0 16px 40px -20px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Interactive cards lift by light, not by movement: the edge brightens and
+     a faint ember glow joins the stack. */
+  .card-interactive {
+    transition:
+      border-color 200ms var(--ease-soft),
+      box-shadow 200ms var(--ease-soft);
+  }
+  .card-interactive:hover {
+    border-color: var(--color-line-strong);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      0 1px 2px rgba(0, 0, 0, 0.35),
+      0 16px 40px -18px rgba(0, 0, 0, 0.65),
+      0 0 24px -12px rgba(232, 161, 58, 0.35);
+  }
+}
+
+@layer components {
+  /* Shadow recipes (docs/UI_DESIGN_SYSTEM.md): components never carry literal
+     color values; every glow resolves here. */
+  .shadow-btn-ember {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 6px 16px -8px rgba(232, 161, 58, 0.5);
+  }
+  .glow-yes {
+    box-shadow: 0 0 12px -2px rgba(63, 185, 132, 0.6);
+  }
+}
+
+/* Tabular figures for tallies, addresses, and token amounts. */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Entrance: fade-rise on the enter curve; list items stagger via
+   animation-delay set inline (50ms constant). */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise-in 300ms var(--ease-enter) both;
+}
+
+/* The hero moment: the tally bar grows once when a resolved ballot enters. */
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+.animate-bar {
+  transform-origin: left;
+  animation: bar-grow 500ms var(--ease-enter) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-bar {
+    animation: none;
+  }
 }

@@ -2,18 +2,10 @@
 
 import { TriangleAlert } from "lucide-react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { ActionButton } from "@/components/ui/ActionButton";
+import { SealStamp } from "@/components/ui/SealStamp";
 import { SEPOLIA_CHAIN_ID } from "@/lib/addresses";
 import { shortenAddress } from "@/lib/format";
-
-/// The Conclave seal: a ring with an ember at its center, the only logo mark.
-function SealMark() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" className="shrink-0">
-      <circle cx="10" cy="10" r="8.5" fill="none" stroke="var(--color-ember)" strokeOpacity="0.45" strokeWidth="1.5" />
-      <circle cx="10" cy="10" r="3" fill="var(--color-ember)" />
-    </svg>
-  );
-}
 
 export function Header() {
   const { address, isConnected, chainId } = useAccount();
@@ -28,9 +20,9 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-line bg-ink supports-[backdrop-filter]:bg-ink/70 supports-[backdrop-filter]:backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2.5">
-          <SealMark />
+          <SealStamp size={20} />
           <span className="font-serif text-xl tracking-tight">Conclave</span>
-          <span className="mt-0.5 hidden text-xs uppercase tracking-wider text-muted sm:inline">
+          <span className="mt-0.5 hidden font-mono text-[11px] uppercase tracking-[0.14em] text-faint sm:inline">
             confidential governance
           </span>
         </div>
@@ -44,7 +36,7 @@ export function Header() {
               </span>
             )}
             <span
-              className="tabular inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm text-muted"
+              className="tabular inline-flex items-center gap-2 rounded-full border border-line bg-raised/40 px-3 py-1.5 font-mono text-xs text-muted"
               title={address}
             >
               <span
@@ -61,16 +53,15 @@ export function Header() {
             </button>
           </div>
         ) : (
-          <button
+          <ActionButton
+            label="Connect wallet"
+            pendingLabel="Connecting..."
+            isPending={isPending}
+            disabled={!injectedConnector}
             onClick={() => {
               if (injectedConnector) connect({ connector: injectedConnector });
             }}
-            disabled={isPending || !injectedConnector}
-            aria-busy={isPending}
-            className="h-10 cursor-pointer rounded-md bg-ember px-4 text-sm font-medium text-ink transition-colors duration-100 ease-soft hover:bg-ember-strong active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70 focus-visible:ring-offset-2 focus-visible:ring-offset-ink disabled:pointer-events-none disabled:opacity-50"
-          >
-            {isPending ? "Connecting..." : "Connect wallet"}
-          </button>
+          />
         )}
       </div>
     </header>

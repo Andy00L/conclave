@@ -1,9 +1,11 @@
 "use client";
 
-import { Check, Clock, Copy, Lock } from "lucide-react";
+import { Check, Clock, Copy } from "lucide-react";
 import { useState } from "react";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { microLabelClasses } from "@/components/ui/field";
+import { SealedChip } from "@/components/ui/SealedChip";
+import { SealStamp } from "@/components/ui/SealStamp";
 import { BALLOT_ADDRESS } from "@/lib/addresses";
 import { castVote, closeBallot, executePayout, resolveBallot, type BallotActionContext } from "@/lib/ballots/actions";
 import { BallotState, type BallotView } from "@/lib/ballots/useBallots";
@@ -19,11 +21,11 @@ function StateBadge({ ballot }: { ballot: BallotView }) {
         ? { label: "Passed", dot: "bg-yes", text: "text-yes", border: "border-yes/30" }
         : { label: "Rejected", dot: "bg-no", text: "text-no", border: "border-no/30" }
       : ballot.state === BallotState.Revealing
-        ? { label: "Sealed", dot: "bg-muted", text: "text-muted", border: "border-line" }
+        ? { label: "Sealed", dot: "bg-muted", text: "text-muted", border: "border-line-strong" }
         : { label: "Voting", dot: "bg-ember", text: "text-ember", border: "border-ember/30" };
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${badge.border} ${badge.text}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-ink/40 px-2.5 py-1 text-xs font-medium ${badge.border} ${badge.text}`}
     >
       <span className={`inline-block size-1.5 rounded-full ${badge.dot}`} aria-hidden="true" />
       {badge.label}
@@ -50,7 +52,7 @@ function BeneficiaryChip({ address }: { address: `0x${string}` }) {
     <button
       onClick={() => void copyAddress()}
       title={address}
-      className="tabular inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted transition-colors duration-100 ease-soft hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70"
+      className="tabular inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 font-mono text-xs text-muted transition-colors duration-100 ease-soft hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70"
     >
       {shortenAddress(address)}
       {hasCopied ? (
@@ -63,17 +65,26 @@ function BeneficiaryChip({ address }: { address: `0x${string}` }) {
   );
 }
 
-/// The reveal moment: a proportional yes/no bar, only shown once resolved.
+/// The hero moment (docs/UI_DESIGN_SYSTEM.md): the reveal. A segmented bar
+/// grown once on entry, the yes side lit, counts in mono beside it.
 function TallyBar({ yesVotes, noVotes }: { yesVotes: bigint; noVotes: bigint }) {
   const total = Number(yesVotes) + Number(noVotes);
   const yesShare = total === 0 ? 0 : (Number(yesVotes) / total) * 100;
   return (
     <div>
-      <div className="flex h-1.5 overflow-hidden rounded-full bg-raised" role="presentation">
-        <div className="bg-yes" style={{ width: `${yesShare}%` }} />
-        <div className="bg-no" style={{ width: `${100 - yesShare}%` }} />
+      <div className="animate-bar flex h-2 overflow-hidden rounded-full bg-ink/70">
+        {total === 0 ? (
+          <div className="flex-1 bg-raised" />
+        ) : (
+          <>
+            {yesShare > 0 && (
+              <div className="glow-yes bg-gradient-to-r from-yes/70 to-yes" style={{ width: `${yesShare}%` }} />
+            )}
+            {yesShare < 100 && <div className="flex-1 bg-no/60" />}
+          </>
+        )}
       </div>
-      <div className="mt-2.5 flex items-baseline gap-5 text-sm">
+      <div className="mt-2.5 flex items-baseline gap-5 font-mono text-sm">
         <span className="tabular inline-flex items-center gap-1.5 text-yes">
           <span className="inline-block size-1.5 rounded-full bg-yes" aria-hidden="true" />
           {yesVotes.toString()} yes
@@ -125,33 +136,31 @@ export function BallotCard({
   ) => run(key, withContext(performAction), { onSuccess: onChanged });
 
   return (
-    <article className="rounded-lg border border-line bg-surface p-5 transition-colors duration-100 ease-soft hover:border-white/15">
+    <article className="card card-interactive p-5">
       <div className="flex items-start justify-between gap-4">
         <p className="font-serif text-lg leading-snug tracking-tight">{ballot.description}</p>
         <StateBadge ballot={ballot} />
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className={microLabelClasses}>Ballot {ballot.id.toString()}</span>
-        <span className="text-line" aria-hidden="true">
+        <span className="text-faint" aria-hidden="true">
           &middot;
         </span>
         <span className={microLabelClasses}>Beneficiary</span>
         <BeneficiaryChip address={ballot.beneficiary} />
-        <span className="text-line" aria-hidden="true">
+        <span className="text-faint" aria-hidden="true">
           &middot;
         </span>
-        <span className={`${microLabelClasses} inline-flex items-center gap-1`}>
-          <Lock size={11} aria-hidden="true" />
-          Payout sealed
-        </span>
+        <SealedChip label="payout" />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-5">
         {ballot.state === BallotState.Resolved ? (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <TallyBar yesVotes={ballot.yesVotes} noVotes={ballot.noVotes} />
-            <p className="text-sm text-muted">
+            <p className="inline-flex items-center gap-2 text-sm text-muted">
+              <SealStamp size={16} tone={ballot.passed ? "yes" : "no"} />
               {ballot.passed
                 ? ballot.executed
                   ? "Confidential payout sent to the beneficiary."
@@ -171,7 +180,7 @@ export function BallotCard({
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-5 flex flex-wrap items-center gap-3">
         {votingIsOpen &&
           (ballot.viewerHasVoted ? (
             <span className="inline-flex items-center gap-1.5 text-sm text-muted">
