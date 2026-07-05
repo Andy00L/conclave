@@ -28,7 +28,8 @@ export function describeTimeLeft(endTimeSeconds: bigint, nowMilliseconds: number
   return `${days} d left`;
 }
 
-/// Absolute close time, shown next to the relative label.
+/// Absolute close time, shown next to the relative label. Short styles keep
+/// the clock line one glance long (no seconds).
 export function formatUnixTime(unixSeconds: bigint): string {
-  return new Date(Number(unixSeconds) * 1000).toLocaleString();
+  return new Date(Number(unixSeconds) * 1000).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
 }

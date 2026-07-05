@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
+      <main className="mx-auto w-full max-w-[68rem] flex-1 px-6 pt-14 pb-18">
         <Dashboard />
       </main>
     </>

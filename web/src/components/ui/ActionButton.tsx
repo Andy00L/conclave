@@ -1,20 +1,26 @@
 "use client";
 
-// The one button used across the app: consistent radius, 40px hit target,
-// ember focus ring, sub-100ms press feedback (scale 0.98, never lower).
-const BASE_CLASSES =
-  "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-medium " +
-  "transition-[background-color,border-color,box-shadow,transform] duration-100 ease-soft active:scale-[0.98] " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70 focus-visible:ring-offset-2 focus-visible:ring-offset-surface " +
-  "disabled:pointer-events-none disabled:opacity-50";
+import { LoaderCircle } from "lucide-react";
 
-// Primary carries the only saturated fill on screen: a lit ember gradient
-// with a top edge, deepening slightly on hover instead of just brightening.
+// The one button used across the app: pill shape, bronze focus ring, 200ms
+// transitions on the soft curve, press feedback at scale 0.98 (never lower).
+const BASE_CLASSES =
+  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-medium " +
+  "transition-[background-color,border-color,box-shadow,translate,scale,opacity] duration-200 ease-soft active:scale-[0.98] " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70 focus-visible:ring-offset-2 focus-visible:ring-offset-paper " +
+  "disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none";
+
+// Primary is the ink pill (the only filled button on screen); quiet is a
+// hairline pill that fills with the well on hover.
 const TONE_CLASSES = {
-  ember:
-    "bg-gradient-to-b from-ember-strong to-ember text-ink shadow-btn-ember " +
-    "hover:from-ember-strong hover:to-ember-strong",
-  quiet: "border border-line bg-raised/40 text-fg hover:border-line-strong hover:text-ember-strong",
+  primary: "bg-ink text-paper-bright shadow-btn hover:-translate-y-px hover:bg-ink-soft",
+  quiet: "border border-line-strong bg-transparent text-ink hover:bg-well",
+} as const;
+
+// md is the standard 44px control; sm is the 36px header/inline variant.
+const SIZE_CLASSES = {
+  md: "h-11 px-6 text-sm",
+  sm: "h-9 px-4 text-sm",
 } as const;
 
 export function ActionButton({
@@ -23,7 +29,8 @@ export function ActionButton({
   isPending = false,
   disabled = false,
   onClick,
-  tone = "ember",
+  tone = "primary",
+  size = "md",
   type = "button",
   fullWidth = false,
 }: {
@@ -33,6 +40,7 @@ export function ActionButton({
   disabled?: boolean;
   onClick?: () => void;
   tone?: keyof typeof TONE_CLASSES;
+  size?: keyof typeof SIZE_CLASSES;
   type?: "button" | "submit";
   fullWidth?: boolean;
 }) {
@@ -42,8 +50,9 @@ export function ActionButton({
       onClick={onClick}
       disabled={disabled || isPending}
       aria-busy={isPending}
-      className={`${BASE_CLASSES} ${TONE_CLASSES[tone]} ${fullWidth ? "w-full" : ""}`}
+      className={`${BASE_CLASSES} ${TONE_CLASSES[tone]} ${SIZE_CLASSES[size]} ${fullWidth ? "w-full" : ""}`}
     >
+      {isPending && <LoaderCircle size={14} className="animate-spinner shrink-0" aria-hidden="true" />}
       {isPending && pendingLabel ? pendingLabel : label}
     </button>
   );

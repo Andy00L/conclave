@@ -5,7 +5,7 @@ import { useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useReadContract } from "wagmi";
 import { ActionButton } from "@/components/ui/ActionButton";
-import { inputClasses, microLabelClasses } from "@/components/ui/field";
+import { microLabelClasses } from "@/components/ui/field";
 import { SealedChip } from "@/components/ui/SealedChip";
 import { ConfidentialGovTokenAbi } from "@/lib/abi/ConfidentialGovToken";
 import { BALLOT_ADDRESS, GOV_TOKEN_ADDRESS } from "@/lib/addresses";
@@ -66,18 +66,18 @@ export function TreasuryCard() {
   });
 
   return (
-    <section className="card p-5">
+    <section className="card p-6">
       <div className="flex items-center gap-2">
-        <LockKeyhole size={15} className="text-ember" aria-hidden="true" />
-        <h2 className="font-serif text-lg tracking-tight">Treasury</h2>
+        <LockKeyhole size={16} aria-hidden="true" />
+        <h2 className="font-serif text-xl font-semibold tracking-tight">Treasury</h2>
       </div>
-      <p className="mt-1.5 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted">
         The ballot contract holds confidential cGOV: its balance is a ciphertext on-chain. Fund it here, then let
         passing ballots spend it. Minting is open because cGOV is a testnet demo token.
       </p>
 
       <form
-        className="mt-4"
+        className="mt-4.5"
         onSubmit={(event) => {
           event.preventDefault();
           void run("fund", submitFundTreasury);
@@ -85,14 +85,15 @@ export function TreasuryCard() {
       >
         <label className="block">
           <span className={microLabelClasses}>Amount (cGOV)</span>
-          <div className="mt-1.5 flex gap-2">
+          <div className="mt-2 flex items-center gap-1.5 rounded-full border border-line bg-well p-1 pl-3.5 shadow-well transition-[border-color] duration-200 ease-soft hover:border-line-strong">
             <input
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               placeholder="1000"
               inputMode="decimal"
               autoComplete="off"
-              className={`tabular ${inputClasses}`}
+              disabled={pendingKey === "fund"}
+              className="tabular h-10 min-w-0 flex-1 border-none bg-transparent font-mono text-[13px] text-ink placeholder:text-faint focus:outline-none disabled:cursor-not-allowed disabled:text-faint"
             />
             <div className="shrink-0">
               <ActionButton
@@ -107,28 +108,29 @@ export function TreasuryCard() {
         </label>
       </form>
 
-      <div className="mt-5 border-t border-line pt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm">
-            <span className={microLabelClasses}>Your balance</span>
-            <p className="mt-1">
-              {decryptedBalance !== undefined && decimals !== undefined ? (
-                <span className="tabular font-mono text-fg">{formatUnits(decryptedBalance, decimals)} cGOV</span>
-              ) : (
-                <SealedChip label="balance" />
-              )}
-            </p>
-          </div>
+      <div className="my-5 h-px bg-line" aria-hidden="true" />
+
+      <div>
+        <span className={microLabelClasses}>Your balance</span>
+        <div className="mt-2.5 flex items-center justify-between gap-3">
+          {decryptedBalance !== undefined && decimals !== undefined ? (
+            <span className="tabular font-mono text-base text-ink">
+              {formatUnits(decryptedBalance, decimals)} cGOV
+            </span>
+          ) : (
+            <SealedChip label="balance" />
+          )}
           <ActionButton
             label="Decrypt"
             pendingLabel="Decrypting..."
             isPending={pendingKey === "decrypt-balance"}
             disabled={isPending || !isConnected}
             tone="quiet"
+            size="sm"
             onClick={() => void run("decrypt-balance", submitDecryptBalance)}
           />
         </div>
-        <p className="mt-2.5 text-xs text-muted">
+        <p className="mt-2.5 text-[13px] text-muted">
           Decrypting asks the wallet for one EIP-712 signature; the relayer re-encrypts the balance to a throwaway key
           only this page holds.
         </p>

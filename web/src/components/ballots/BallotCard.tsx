@@ -12,20 +12,25 @@ import { BallotState, type BallotView } from "@/lib/ballots/useBallots";
 import { describeTimeLeft, formatUnixTime, shortenAddress } from "@/lib/format";
 import type { Failure } from "@/lib/result";
 import { useAsyncAction } from "@/lib/useAsyncAction";
+import { useCountUp } from "@/lib/useCountUp";
 import { useOnchainClients } from "@/lib/useOnchainClients";
+
+// Reveal choreography (docs/UI_DESIGN_SYSTEM.md): the bar grows 500ms while
+// the counts count up 700ms, then the wax seal stamps in.
+const SEAL_DELAY_AFTER_BAR_MS = 700;
 
 function StateBadge({ ballot }: { ballot: BallotView }) {
   const badge =
     ballot.state === BallotState.Resolved
       ? ballot.passed
-        ? { label: "Passed", dot: "bg-yes", text: "text-yes", border: "border-yes/30" }
-        : { label: "Rejected", dot: "bg-no", text: "text-no", border: "border-no/30" }
+        ? { label: "Passed", dot: "bg-yes", text: "text-yes", wash: "bg-yes/10" }
+        : { label: "Rejected", dot: "bg-no", text: "text-no", wash: "bg-no/10" }
       : ballot.state === BallotState.Revealing
-        ? { label: "Sealed", dot: "bg-muted", text: "text-muted", border: "border-line-strong" }
-        : { label: "Voting", dot: "bg-ember", text: "text-ember", border: "border-ember/30" };
+        ? { label: "Sealed", dot: "bg-muted", text: "text-ink", wash: "bg-ink/10" }
+        : { label: "Voting", dot: "bg-bronze", text: "text-bronze-deep", wash: "bg-bronze/10" };
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-ink/40 px-2.5 py-1 text-xs font-medium ${badge.border} ${badge.text}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${badge.wash} ${badge.text}`}
     >
       <span className={`inline-block size-1.5 rounded-full ${badge.dot}`} aria-hidden="true" />
       {badge.label}
@@ -52,47 +57,55 @@ function BeneficiaryChip({ address }: { address: `0x${string}` }) {
     <button
       onClick={() => void copyAddress()}
       title={address}
-      className="tabular inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 font-mono text-xs text-muted transition-colors duration-100 ease-soft hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70"
+      className="tabular inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-well px-2 py-1 font-mono text-xs text-ink shadow-well transition-[border-color] duration-200 ease-soft hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
     >
       {shortenAddress(address)}
       {hasCopied ? (
         <Check size={12} className="text-yes" aria-hidden="true" />
       ) : (
-        <Copy size={12} aria-hidden="true" />
+        <Copy size={12} className="text-muted" aria-hidden="true" />
       )}
       <span className="sr-only">{hasCopied ? "Address copied" : "Copy beneficiary address"}</span>
     </button>
   );
 }
 
-/// The hero moment (docs/UI_DESIGN_SYSTEM.md): the reveal. A segmented bar
-/// grown once on entry, the yes side lit, counts in mono beside it.
-function TallyBar({ yesVotes, noVotes }: { yesVotes: bigint; noVotes: bigint }) {
-  const total = Number(yesVotes) + Number(noVotes);
-  const yesShare = total === 0 ? 0 : (Number(yesVotes) / total) * 100;
+/// The hero moment (docs/UI_DESIGN_SYSTEM.md): the reveal. The winning side
+/// carries the solid verdict color, the losing side its wash; the bar grows
+/// once, the counts count up beside it.
+function TallyBar({
+  yesVotes,
+  noVotes,
+  passed,
+  revealDelayMs,
+}: {
+  yesVotes: bigint;
+  noVotes: bigint;
+  passed: boolean;
+  revealDelayMs: number;
+}) {
+  const yesTarget = Number(yesVotes);
+  const noTarget = Number(noVotes);
+  const displayedYes = useCountUp(yesTarget, revealDelayMs);
+  const displayedNo = useCountUp(noTarget, revealDelayMs);
+  const total = yesTarget + noTarget;
+  const yesShare = total === 0 ? 0 : (yesTarget / total) * 100;
   return (
     <div>
-      <div className="animate-bar flex h-2 overflow-hidden rounded-full bg-ink/70">
-        {total === 0 ? (
-          <div className="flex-1 bg-raised" />
-        ) : (
+      <div
+        className="animate-bar flex h-2 overflow-hidden rounded-full bg-well"
+        style={{ animationDelay: `${revealDelayMs}ms` }}
+      >
+        {total > 0 && (
           <>
-            {yesShare > 0 && (
-              <div className="glow-yes bg-gradient-to-r from-yes/70 to-yes" style={{ width: `${yesShare}%` }} />
-            )}
-            {yesShare < 100 && <div className="flex-1 bg-no/60" />}
+            {yesShare > 0 && <div className={passed ? "bg-yes" : "bg-yes/40"} style={{ width: `${yesShare}%` }} />}
+            {yesShare < 100 && <div className={`flex-1 ${passed ? "bg-no/40" : "bg-no"}`} />}
           </>
         )}
       </div>
-      <div className="mt-2.5 flex items-baseline gap-5 font-mono text-sm">
-        <span className="tabular inline-flex items-center gap-1.5 text-yes">
-          <span className="inline-block size-1.5 rounded-full bg-yes" aria-hidden="true" />
-          {yesVotes.toString()} yes
-        </span>
-        <span className="tabular inline-flex items-center gap-1.5 text-no">
-          <span className="inline-block size-1.5 rounded-full bg-no" aria-hidden="true" />
-          {noVotes.toString()} no
-        </span>
+      <div className="mt-2.5 flex items-baseline gap-3.5 font-mono text-[13px]">
+        <span className="tabular text-yes">{displayedYes} yes</span>
+        <span className="tabular text-no">{displayedNo} no</span>
       </div>
     </div>
   );
@@ -101,12 +114,15 @@ function TallyBar({ yesVotes, noVotes }: { yesVotes: bigint; noVotes: bigint }) 
 export function BallotCard({
   ballot,
   nowMilliseconds,
+  revealDelayMs,
   onChanged,
 }: {
   ballot: BallotView;
   // Timestamp of the last ballots fetch. Using it instead of Date.now() keeps
   // rendering pure; it refreshes with every refetch, close enough for a countdown.
   nowMilliseconds: number;
+  // When this card's reveal starts, staged by the list so one reveals at a time.
+  revealDelayMs: number;
   onChanged: () => void;
 }) {
   const { requireWriteClients, isConnected } = useOnchainClients();
@@ -115,6 +131,7 @@ export function BallotCard({
   const votingIsOpen = ballot.state === BallotState.Active && nowMilliseconds / 1000 <= Number(ballot.endTime);
   const waitingForClose = ballot.state === BallotState.Active && !votingIsOpen;
   const timeLeftLabel = describeTimeLeft(ballot.endTime, nowMilliseconds);
+  const sealDelayMs = revealDelayMs + SEAL_DELAY_AFTER_BAR_MS;
 
   const withContext = (performAction: (context: BallotActionContext) => Promise<{ ok: true } | Failure>) => {
     return async (): Promise<{ ok: true } | Failure> => {
@@ -136,14 +153,16 @@ export function BallotCard({
   ) => run(key, withContext(performAction), { onSuccess: onChanged });
 
   return (
-    <article className="card card-interactive p-5">
+    <article className="card card-interactive p-6">
       <div className="flex items-start justify-between gap-4">
-        <p className="font-serif text-lg leading-snug tracking-tight">{ballot.description}</p>
+        <h3 className="font-serif text-xl font-[550] leading-snug tracking-tight text-balance">
+          {ballot.description}
+        </h3>
         <StateBadge ballot={ballot} />
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <span className={microLabelClasses}>Ballot {ballot.id.toString()}</span>
+      <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-2">
+        <span className={`${microLabelClasses} tabular`}>Ballot {ballot.id.toString()}</span>
         <span className="text-faint" aria-hidden="true">
           &middot;
         </span>
@@ -155,12 +174,25 @@ export function BallotCard({
         <SealedChip label="payout" />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-3.5">
         {ballot.state === BallotState.Resolved ? (
-          <div className="space-y-3">
-            <TallyBar yesVotes={ballot.yesVotes} noVotes={ballot.noVotes} />
-            <p className="inline-flex items-center gap-2 text-sm text-muted">
-              <SealStamp size={16} tone={ballot.passed ? "yes" : "no"} />
+          <div className="mt-1 space-y-3">
+            <TallyBar
+              yesVotes={ballot.yesVotes}
+              noVotes={ballot.noVotes}
+              passed={ballot.passed}
+              revealDelayMs={revealDelayMs}
+            />
+            <p
+              className="animate-fade inline-flex items-center gap-2 text-sm text-muted"
+              style={{ animationDelay: `${sealDelayMs}ms` }}
+            >
+              <SealStamp
+                size={20}
+                tone={ballot.passed ? "yes" : "no"}
+                className="animate-stamp"
+                style={{ animationDelay: `${sealDelayMs}ms` }}
+              />
               {ballot.passed
                 ? ballot.executed
                   ? "Confidential payout sent to the beneficiary."
@@ -169,9 +201,9 @@ export function BallotCard({
             </p>
           </div>
         ) : votingIsOpen ? (
-          <p className="inline-flex items-center gap-2 text-sm text-muted">
-            <Clock size={14} className="shrink-0 text-ember" aria-hidden="true" />
-            {timeLeftLabel ?? "Closing soon"} &middot; closes {formatUnixTime(ballot.endTime)}
+          <p className="tabular inline-flex items-center gap-2 text-sm text-muted">
+            <Clock size={14} className="shrink-0" aria-hidden="true" />
+            {timeLeftLabel ?? "Closing soon"}, closes {formatUnixTime(ballot.endTime)}
           </p>
         ) : waitingForClose ? (
           <p className="text-sm text-muted">Voting has ended. Close the ballot to seal the tallies for decryption.</p>
@@ -180,11 +212,11 @@ export function BallotCard({
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      <div className="mt-4.5 flex flex-wrap items-center gap-2.5">
         {votingIsOpen &&
           (ballot.viewerHasVoted ? (
-            <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-              <Check size={14} className="text-yes" aria-hidden="true" />
+            <span className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink">
+              <Check size={15} className="text-yes" aria-hidden="true" />
               Your encrypted vote is in.
             </span>
           ) : (

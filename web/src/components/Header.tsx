@@ -1,8 +1,9 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { ActionButton } from "@/components/ui/ActionButton";
+import { microLabelClasses } from "@/components/ui/field";
 import { SealStamp } from "@/components/ui/SealStamp";
 import { SEPOLIA_CHAIN_ID } from "@/lib/addresses";
 import { shortenAddress } from "@/lib/format";
@@ -11,43 +12,46 @@ export function Header() {
   const { address, isConnected, chainId } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
+  const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const injectedConnector = connectors[0];
   const onSepolia = chainId === SEPOLIA_CHAIN_ID;
 
   return (
-    // Structural glass: the header floats over scrolling ballots, so the
-    // translucency shows the overlap. Solid ink fallback when blur is unsupported.
-    <header className="sticky top-0 z-40 border-b border-line bg-ink supports-[backdrop-filter]:bg-ink/70 supports-[backdrop-filter]:backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
+    // The header floats on the paper field: paper at 80% + blur so scrolling
+    // ballots show through, one hairline below. Solid paper fallback.
+    <header className="sticky top-0 z-40 border-b border-line bg-paper supports-[backdrop-filter]:bg-paper/80 supports-[backdrop-filter]:backdrop-blur-md">
+      <div className="mx-auto flex h-[68px] w-full max-w-[68rem] items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-2.5">
-          <SealStamp size={20} />
-          <span className="font-serif text-xl tracking-tight">Conclave</span>
-          <span className="mt-0.5 hidden font-mono text-[11px] uppercase tracking-[0.14em] text-faint sm:inline">
-            confidential governance
-          </span>
+          <SealStamp size={24} />
+          <span className="font-serif text-xl font-semibold tracking-tight">Conclave</span>
+          <span className={`${microLabelClasses} mt-0.5 hidden sm:inline`}>confidential governance</span>
         </div>
 
         {isConnected && address ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {onSepolia ? null : (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-no/40 px-2.5 py-1 text-xs text-no">
+              <button
+                onClick={() => switchChain({ chainId: SEPOLIA_CHAIN_ID })}
+                disabled={isSwitchPending}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-no/10 px-3.5 text-[13px] font-medium text-no transition-[translate,scale,opacity] duration-200 ease-soft hover:-translate-y-px active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
+              >
                 <TriangleAlert size={13} aria-hidden="true" />
-                Switch to Sepolia
-              </span>
+                {isSwitchPending ? "Switching..." : "Switch to Sepolia"}
+              </button>
             )}
             <span
-              className="tabular inline-flex items-center gap-2 rounded-full border border-line bg-raised/40 px-3 py-1.5 font-mono text-xs text-muted"
-              title={address}
+              className="tabular inline-flex h-9 items-center gap-2 rounded-full border border-line bg-well px-3.5 font-mono text-xs text-ink shadow-well"
+              title={onSepolia ? "Connected to Sepolia" : "Wrong network"}
             >
               <span
-                className={`inline-block size-1.5 rounded-full ${onSepolia ? "bg-yes" : "bg-no"}`}
+                className={`inline-block size-[7px] rounded-full ${onSepolia ? "bg-yes" : "bg-no"}`}
                 aria-hidden="true"
               />
               {shortenAddress(address)}
             </span>
             <button
               onClick={() => disconnect()}
-              className="cursor-pointer rounded-md px-2 py-1.5 text-sm text-muted transition-colors duration-100 ease-soft hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70"
+              className="h-9 cursor-pointer rounded-full px-3 text-sm font-medium text-muted transition-colors duration-200 ease-soft hover:bg-well hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
             >
               Disconnect
             </button>

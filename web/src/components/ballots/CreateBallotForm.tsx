@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { getAddress, isAddress, parseUnits } from "viem";
 import { useReadContract } from "wagmi";
@@ -70,44 +71,53 @@ export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form
-      className="card p-5"
+      className="card p-6"
       onSubmit={(event) => {
         event.preventDefault();
         void run("create", submitCreateBallot, { onSuccess: onCreated });
       }}
     >
-      <h2 className="font-serif text-lg tracking-tight">New ballot</h2>
+      <h2 className="font-serif text-xl font-semibold tracking-tight">New ballot</h2>
       <p className="mt-1.5 text-sm text-muted">
         The payout is encrypted before it leaves this page. If the ballot passes, the beneficiary receives that sealed
         amount from the treasury.
       </p>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-4.5 space-y-4">
         <label className="block">
           <span className={microLabelClasses}>Question</span>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             maxLength={MAX_DESCRIPTION_LENGTH}
-            rows={3}
+            rows={2}
+            disabled={isPending}
             placeholder="Fund the community grant?"
-            className={`mt-1.5 ${textareaClasses}`}
+            className={`mt-2 ${textareaClasses}`}
           />
         </label>
 
         <label className="block">
           <span className={microLabelClasses}>Voting window</span>
-          <select
-            value={durationSeconds.toString()}
-            onChange={(event) => setDurationSeconds(BigInt(event.target.value))}
-            className={`mt-1.5 cursor-pointer ${inputClasses}`}
-          >
-            {DURATION_CHOICES.map((choice) => (
-              <option key={choice.label} value={choice.seconds.toString()}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
+          <span className="relative mt-2 block">
+            <select
+              value={durationSeconds.toString()}
+              onChange={(event) => setDurationSeconds(BigInt(event.target.value))}
+              disabled={isPending}
+              className={`cursor-pointer appearance-none pr-9 ${inputClasses}`}
+            >
+              {DURATION_CHOICES.map((choice) => (
+                <option key={choice.label} value={choice.seconds.toString()}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={14}
+              className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-muted"
+              aria-hidden="true"
+            />
+          </span>
         </label>
 
         <label className="block">
@@ -118,7 +128,8 @@ export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
             placeholder="0x..."
             spellCheck={false}
             autoComplete="off"
-            className={`mt-1.5 tabular ${inputClasses}`}
+            disabled={isPending}
+            className={`mt-2 font-mono text-[13px] ${inputClasses}`}
           />
         </label>
 
@@ -130,12 +141,13 @@ export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
             placeholder="100"
             inputMode="decimal"
             autoComplete="off"
-            className={`mt-1.5 tabular ${inputClasses}`}
+            disabled={isPending}
+            className={`tabular mt-2 font-mono text-[13px] ${inputClasses}`}
           />
         </label>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4.5">
         <ActionButton
           type="submit"
           label="Create ballot"
@@ -146,9 +158,9 @@ export function CreateBallotForm({ onCreated }: { onCreated: () => void }) {
         />
       </div>
 
-      {!isConnected && <p className="mt-2.5 text-xs text-muted">Connect a wallet to create a ballot.</p>}
+      {!isConnected && <p className="mt-2 text-xs text-muted">Connect a wallet to create a ballot.</p>}
       {error && (
-        <p role="alert" className="mt-3 text-sm text-no">
+        <p role="alert" className="mt-2.5 text-sm text-no">
           {error}
         </p>
       )}

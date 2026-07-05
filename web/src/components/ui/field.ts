@@ -1,14 +1,15 @@
 // Shared form field styling so every input, select, and textarea in the app
-// reads identically: a well one step below the card, quiet resting border,
-// ember focus ring, no background swap on focus.
+// reads identically: a recessed well one step below the card, quiet resting
+// border that strengthens on hover, bronze focus outline.
 export const fieldClasses =
-  "w-full rounded-lg border border-line bg-ink/60 px-3 text-sm text-fg placeholder:text-faint " +
-  "transition-[border-color,box-shadow] duration-200 ease-soft " +
-  "focus:border-ember/40 focus:outline-none focus:ring-2 focus:ring-ember/50";
+  "w-full rounded-[10px] border border-line bg-well px-3.5 text-sm text-ink shadow-well placeholder:text-faint " +
+  "transition-[border-color] duration-200 ease-soft hover:border-line-strong " +
+  "focus:outline-2 focus:outline-offset-2 focus:outline-bronze/70 " +
+  "disabled:cursor-not-allowed disabled:text-faint";
 
-export const inputClasses = `h-10 ${fieldClasses}`;
+export const inputClasses = `h-11 ${fieldClasses}`;
 
-export const textareaClasses = `resize-none py-2.5 ${fieldClasses}`;
+export const textareaClasses = `min-h-16 resize-y py-[11px] ${fieldClasses}`;
 
 // Eyebrow micro-label: mono, uppercase, wide tracking, faint ink. The
 // precision voice of the product (ballot ids, field labels, meta rows).
