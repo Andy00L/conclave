@@ -85,7 +85,7 @@ export function TreasuryCard() {
       >
         <label className="block">
           <span className={microLabelClasses}>Amount (cGOV)</span>
-          <div className="mt-2 flex items-center gap-1.5 rounded-full border border-line bg-well p-1 pl-3.5 shadow-well transition-[border-color] duration-200 ease-soft hover:border-line-strong">
+          <div className="mt-2 flex items-center gap-1.5 rounded-full border border-line bg-well p-1 pl-3.5 shadow-well transition-[border-color] duration-150 ease-soft hover:border-line-strong">
             <input
               value={amount}
               onChange={(event) => setAmount(event.target.value)}

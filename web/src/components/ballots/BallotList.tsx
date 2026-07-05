@@ -7,16 +7,17 @@ import { ActionButton } from "@/components/ui/ActionButton";
 import { BallotState, useBallots, type BallotView } from "@/lib/ballots/useBallots";
 
 // Entrance choreography (docs/UI_DESIGN_SYSTEM.md): the list follows the
-// section header (170ms) on the one 50ms stagger constant.
-const ENTRANCE_BASE_DELAY_MS = 170;
+// section header on the one 50ms stagger constant.
+const ENTRANCE_BASE_DELAY_MS = 140;
 const ENTRANCE_STAGGER_MS = 50;
 
-// Reveal staging: on first load, resolved ballots reveal one after another
-// (bar 500ms + counts 700ms breathe inside the 900ms slot). A ballot the
-// viewer resolves during the session reveals almost at once instead.
-const REVEAL_BASE_DELAY_MS = 600;
-const REVEAL_STAGGER_MS = 900;
-const REVEAL_LATER_DELAY_MS = 150;
+// Reveal staging: on first load, resolved ballots reveal in a tight cascade
+// (80ms apart, under the 100ms slideshow line), each playing bar 420ms +
+// counts 520ms + seal. A ballot the viewer resolves during the session
+// reveals almost at once instead.
+const REVEAL_BASE_DELAY_MS = 340;
+const REVEAL_STAGGER_MS = 80;
+const REVEAL_LATER_DELAY_MS = 120;
 
 /// Card-shaped skeleton on the well color so the list does not jump when
 /// data lands: title + pill, meta chips, body line, two pill buttons.

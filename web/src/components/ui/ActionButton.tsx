@@ -6,14 +6,14 @@ import { LoaderCircle } from "lucide-react";
 // transitions on the soft curve, press feedback at scale 0.98 (never lower).
 const BASE_CLASSES =
   "inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-medium " +
-  "transition-[background-color,border-color,box-shadow,translate,scale,opacity] duration-200 ease-soft active:scale-[0.98] " +
+  "transition-[background-color,border-color,box-shadow,translate,scale,opacity] duration-150 ease-soft active:scale-[0.98] " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70 focus-visible:ring-offset-2 focus-visible:ring-offset-paper " +
   "disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none";
 
 // Primary is the ink pill (the only filled button on screen); quiet is a
-// hairline pill that fills with the well on hover.
+// hairline pill that fills with the well on hover. Primary lifts 2px on hover.
 const TONE_CLASSES = {
-  primary: "bg-ink text-paper-bright shadow-btn hover:-translate-y-px hover:bg-ink-soft",
+  primary: "bg-ink text-paper-bright shadow-btn hover:-translate-y-0.5 hover:bg-ink-soft",
   quiet: "border border-line-strong bg-transparent text-ink hover:bg-well",
 } as const;
 
@@ -33,6 +33,7 @@ export function ActionButton({
   size = "md",
   type = "button",
   fullWidth = false,
+  href,
 }: {
   label: React.ReactNode;
   pendingLabel?: string;
@@ -43,14 +44,27 @@ export function ActionButton({
   size?: keyof typeof SIZE_CLASSES;
   type?: "button" | "submit";
   fullWidth?: boolean;
+  href?: string;
 }) {
+  const combinedClasses = `${BASE_CLASSES} ${TONE_CLASSES[tone]} ${SIZE_CLASSES[size]} ${fullWidth ? "w-full" : ""}`;
+
+  // External destinations (the Sepolia ETH faucet) share the pill styling but
+  // render as a link: new tab, no opener access for the target page.
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={combinedClasses}>
+        {label}
+      </a>
+    );
+  }
+
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled || isPending}
       aria-busy={isPending}
-      className={`${BASE_CLASSES} ${TONE_CLASSES[tone]} ${SIZE_CLASSES[size]} ${fullWidth ? "w-full" : ""}`}
+      className={combinedClasses}
     >
       {isPending && <LoaderCircle size={14} className="animate-spinner shrink-0" aria-hidden="true" />}
       {isPending && pendingLabel ? pendingLabel : label}

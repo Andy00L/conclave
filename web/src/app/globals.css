@@ -94,13 +94,13 @@ body::after {
   /* Interactive cards lift one step: stronger edge, deeper stack, 1px rise. */
   .card-interactive {
     transition:
-      border-color 200ms var(--ease-soft),
-      box-shadow 200ms var(--ease-soft),
-      translate 200ms var(--ease-soft);
+      border-color 150ms var(--ease-soft),
+      box-shadow 150ms var(--ease-soft),
+      translate 150ms var(--ease-soft);
   }
   .card-interactive:hover {
     border-color: var(--color-line-strong);
-    translate: 0 -1px;
+    translate: 0 -2px;
     box-shadow:
       0 2px 4px rgba(28, 25, 23, 0.05),
       0 12px 28px -12px rgba(28, 25, 23, 0.12),
@@ -152,10 +152,10 @@ body::after {
   }
 }
 .animate-rise {
-  animation: rise-in 300ms var(--ease-enter) both;
+  animation: rise-in 260ms var(--ease-enter) both;
 }
 .animate-rise-lg {
-  animation: rise-in-lg 300ms var(--ease-enter) both;
+  animation: rise-in-lg 260ms var(--ease-enter) both;
 }
 
 /* The hero moment: the reveal. The tally bar grows, then the wax seal stamps
@@ -167,7 +167,7 @@ body::after {
 }
 .animate-bar {
   transform-origin: left;
-  animation: bar-grow 500ms var(--ease-enter) both;
+  animation: bar-grow 420ms var(--ease-enter) both;
 }
 @keyframes stamp-in {
   from {
@@ -214,6 +214,21 @@ body::after {
   animation: pulse-soft 900ms var(--ease-soft) infinite alternate;
 }
 
+/* Live indicator: a slow opacity breath on the one open ballot's status dot,
+   the single preattentive pop on an otherwise calm field. Opacity only. */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2000ms var(--ease-soft) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   body::after,
   .animate-rise,
@@ -222,7 +237,8 @@ body::after {
   .animate-stamp,
   .animate-fade,
   .animate-spinner,
-  .animate-pulse-soft {
+  .animate-pulse-soft,
+  .animate-pulse-dot {
     animation: none;
   }
   .card-interactive:hover {

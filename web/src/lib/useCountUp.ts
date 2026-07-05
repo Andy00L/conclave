@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 
 // Count-up duration from the motion tokens (docs/UI_DESIGN_SYSTEM.md): the
-// tally counts ease over 700ms, decelerating into the final number.
-const COUNT_UP_DURATION_MS = 700;
+// tally counts ease over 520ms, decelerating into the final number. Kept
+// under the hero-move ceiling so the reveal reads quick, not slow.
+const COUNT_UP_DURATION_MS = 520;
 
 /// Animates 0 to `target` on a decelerating curve after `delayMs`, matching
 /// the tally reveal choreography. Under prefers-reduced-motion the value

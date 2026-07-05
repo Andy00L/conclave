@@ -4,17 +4,20 @@ import { Flame, Lock, Shield, Wallet } from "lucide-react";
 import { useAccount } from "wagmi";
 import { BallotList } from "@/components/ballots/BallotList";
 import { CreateBallotForm } from "@/components/ballots/CreateBallotForm";
+import { FaucetCard } from "@/components/treasury/FaucetCard";
 import { TreasuryCard } from "@/components/treasury/TreasuryCard";
 import { microLabelClasses } from "@/components/ui/field";
 import { CONTRACTS_CONFIGURED } from "@/lib/addresses";
 import { useBallots } from "@/lib/ballots/useBallots";
 
 // Page entrance choreography (docs/UI_DESIGN_SYSTEM.md): the hero rises
-// first, then each region follows on the 50ms stagger.
-const NOTICE_DELAY_MS = 120;
-const SECTION_DELAY_MS = 170;
-const FORM_DELAY_MS = 320;
-const TREASURY_DELAY_MS = 370;
+// first, then each region follows in a tight cascade so the page settles
+// within about half a second.
+const NOTICE_DELAY_MS = 80;
+const SECTION_DELAY_MS = 120;
+const FORM_DELAY_MS = 210;
+const TREASURY_DELAY_MS = 260;
+const FAUCET_DELAY_MS = 310;
 
 /// One step of the privacy pipeline under the hero, joined by hairlines.
 function PipelineStep({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -100,6 +103,11 @@ export function Dashboard() {
               <div className="animate-rise" style={{ animationDelay: `${TREASURY_DELAY_MS}ms` }}>
                 <TreasuryCard />
               </div>
+              {isConnected && (
+                <div className="animate-rise" style={{ animationDelay: `${FAUCET_DELAY_MS}ms` }}>
+                  <FaucetCard />
+                </div>
+              )}
             </div>
           </div>
         </>

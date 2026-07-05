@@ -15,24 +15,29 @@ import { useAsyncAction } from "@/lib/useAsyncAction";
 import { useCountUp } from "@/lib/useCountUp";
 import { useOnchainClients } from "@/lib/useOnchainClients";
 
-// Reveal choreography (docs/UI_DESIGN_SYSTEM.md): the bar grows 500ms while
-// the counts count up 700ms, then the wax seal stamps in.
-const SEAL_DELAY_AFTER_BAR_MS = 700;
+// Reveal choreography (docs/UI_DESIGN_SYSTEM.md): the bar grows 420ms while
+// the counts count up 520ms, then the wax seal stamps in as the punctuation.
+const SEAL_DELAY_AFTER_BAR_MS = 540;
 
 function StateBadge({ ballot }: { ballot: BallotView }) {
+  // `live` marks the one open ballot: its dot breathes so the eye lands on the
+  // ballot that can actually be acted on. Every other state stays still.
   const badge =
     ballot.state === BallotState.Resolved
       ? ballot.passed
-        ? { label: "Passed", dot: "bg-yes", text: "text-yes", wash: "bg-yes/10" }
-        : { label: "Rejected", dot: "bg-no", text: "text-no", wash: "bg-no/10" }
+        ? { label: "Passed", dot: "bg-yes", text: "text-yes", wash: "bg-yes/10", live: false }
+        : { label: "Rejected", dot: "bg-no", text: "text-no", wash: "bg-no/10", live: false }
       : ballot.state === BallotState.Revealing
-        ? { label: "Sealed", dot: "bg-muted", text: "text-ink", wash: "bg-ink/10" }
-        : { label: "Voting", dot: "bg-bronze", text: "text-bronze-deep", wash: "bg-bronze/10" };
+        ? { label: "Sealed", dot: "bg-muted", text: "text-ink", wash: "bg-ink/10", live: false }
+        : { label: "Voting", dot: "bg-bronze", text: "text-bronze-deep", wash: "bg-bronze/10", live: true };
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${badge.wash} ${badge.text}`}
     >
-      <span className={`inline-block size-1.5 rounded-full ${badge.dot}`} aria-hidden="true" />
+      <span
+        className={`inline-block size-1.5 rounded-full ${badge.dot} ${badge.live ? "animate-pulse-dot" : ""}`}
+        aria-hidden="true"
+      />
       {badge.label}
     </span>
   );
@@ -57,7 +62,7 @@ function BeneficiaryChip({ address }: { address: `0x${string}` }) {
     <button
       onClick={() => void copyAddress()}
       title={address}
-      className="tabular inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-well px-2 py-1 font-mono text-xs text-ink shadow-well transition-[border-color] duration-200 ease-soft hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
+      className="tabular inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-well px-2 py-1 font-mono text-xs text-ink shadow-well transition-[border-color] duration-150 ease-soft hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
     >
       {shortenAddress(address)}
       {hasCopied ? (

@@ -3,7 +3,7 @@
 // border that strengthens on hover, bronze focus outline.
 export const fieldClasses =
   "w-full rounded-[10px] border border-line bg-well px-3.5 text-sm text-ink shadow-well placeholder:text-faint " +
-  "transition-[border-color] duration-200 ease-soft hover:border-line-strong " +
+  "transition-[border-color] duration-150 ease-soft hover:border-line-strong " +
   "focus:outline-2 focus:outline-offset-2 focus:outline-bronze/70 " +
   "disabled:cursor-not-allowed disabled:text-faint";
 

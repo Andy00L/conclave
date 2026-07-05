@@ -45,7 +45,7 @@ export function Header() {
               <button
                 onClick={() => switchChain({ chainId: SEPOLIA_CHAIN_ID })}
                 disabled={isSwitchPending}
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-no/10 px-3.5 text-[13px] font-medium text-no transition-[translate,scale,opacity] duration-200 ease-soft hover:-translate-y-px active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-no/10 px-3.5 text-[13px] font-medium text-no transition-[translate,scale,opacity] duration-150 ease-soft hover:-translate-y-px active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
               >
                 <TriangleAlert size={13} aria-hidden="true" />
                 {isSwitchPending ? "Switching..." : "Switch to Sepolia"}
@@ -63,7 +63,7 @@ export function Header() {
             </span>
             <button
               onClick={() => disconnect()}
-              className="h-9 cursor-pointer rounded-full px-3 text-sm font-medium text-muted transition-colors duration-200 ease-soft hover:bg-well hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
+              className="h-9 cursor-pointer rounded-full px-3 text-sm font-medium text-muted transition-colors duration-150 ease-soft hover:bg-well hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
             >
               Disconnect
             </button>
