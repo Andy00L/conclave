@@ -9,15 +9,19 @@ reveals only the aggregate, and pays a passing ballot's beneficiary an amount
 that never appears in clear.
 </p>
 
-<p align="center">Built for the Zama Developer Program Mainnet Season 3, Builder Track.</p>
+<p align="center">
+  <a href="https://conclave-alpha.vercel.app">Live app (Sepolia)</a>
+  &nbsp;&middot;&nbsp;
+  Built for the Zama Developer Program Mainnet Season 3, Builder Track.
+</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/encryption-FHEVM%20%28Zama%29-e8a13a" alt="encryption: FHEVM by Zama">
-  <img src="https://img.shields.io/badge/network-Ethereum%20Sepolia-9aa3b2" alt="network: Ethereum Sepolia">
-  <img src="https://img.shields.io/badge/token-ERC--7984-3fb984" alt="token: ERC-7984">
-  <img src="https://img.shields.io/badge/frontend-Next.js%2016-1b212c" alt="frontend: Next.js 16">
-  <img src="https://img.shields.io/badge/tests-12%20passing-3fb984" alt="tests: 12 passing">
-  <img src="https://img.shields.io/badge/license-BSD--3--Clause--Clear-555555" alt="license: BSD-3-Clause-Clear">
+  <img src="https://img.shields.io/badge/encryption-FHEVM%20%28Zama%29-9a5b13" alt="encryption: FHEVM by Zama">
+  <img src="https://img.shields.io/badge/network-Ethereum%20Sepolia-57534e" alt="network: Ethereum Sepolia">
+  <img src="https://img.shields.io/badge/token-ERC--7984-25704f" alt="token: ERC-7984">
+  <img src="https://img.shields.io/badge/frontend-Next.js%2016-1c1917" alt="frontend: Next.js 16">
+  <img src="https://img.shields.io/badge/tests-12%20passing-25704f" alt="tests: 12 passing">
+  <img src="https://img.shields.io/badge/license-BSD--3--Clause--Clear-736e64" alt="license: BSD-3-Clause-Clear">
 </p>
 
 ![The Conclave dashboard on Sepolia: an open encrypted ballot and a resolved one](docs/screenshots/01-dashboard.png)
@@ -102,7 +106,9 @@ one passed and paid, one rejected):
 
 ## 🔗 Live on Sepolia
 
-Deployed 2026-07-03 on Ethereum Sepolia.
+The app is hosted at [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app);
+connect a Sepolia wallet and every feature below is usable. Contracts deployed
+2026-07-03 on Ethereum Sepolia.
 
 | Contract | Address | Link |
 | --- | --- | --- |
@@ -111,8 +117,8 @@ Deployed 2026-07-03 on Ethereum Sepolia.
 
 Evidence:
 
-- The ballot contract is live on Sepolia (bytecode present, deployed one day
-  before this writing): [view on Etherscan](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53).
+- The ballot contract is live on Sepolia (bytecode present since 2026-07-03):
+  [view on Etherscan](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53).
 - Ballot 4, "Fund the Q3 open-source grant round", is open for a week: connect
   a Sepolia wallet and cast an encrypted vote yourself. Ballot 2 resolved 2 to 1
   and its 750 cGOV payout was executed confidentially; ballot 3 resolved 1 to 2
@@ -127,8 +133,8 @@ Evidence:
   by the KMS over those exact handles revert the transaction:
   [contracts/contracts/ConfidentialBallot.sol](contracts/contracts/ConfidentialBallot.sol).
 
-The contracts are not yet verified on Etherscan and there is no hosted web URL
-yet; both are noted in [what is real and what is mocked](#-what-is-real-and-what-is-mocked).
+The contracts are not yet verified on Etherscan; this is noted in
+[what is real and what is mocked](#-what-is-real-and-what-is-mocked).
 
 ## 🧪 Reproduce it
 
@@ -146,7 +152,8 @@ Success looks like `12 passing`, run against the in-process FHEVM mock. The
 suite deploys fresh contracts in memory on each run and touches no network and
 no deployed instance.
 
-Run the frontend against the Sepolia contracts above:
+Run the frontend against the Sepolia contracts above (or skip this and use the
+hosted instance at [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app)):
 
 ```bash
 cd ../web
@@ -175,9 +182,9 @@ Notes: production builds use webpack (`bun run build` runs `next build
   replace them.
 - **Final tallies are public by design.** After `resolve`, the yes and no counts
   are on-chain. Only the individual votes and the payout amount stay encrypted.
-- **Not yet verified or hosted.** The Sepolia contracts are unverified on
-  Etherscan and the web app runs locally; a hosted URL and source verification
-  are pending.
+- **Contracts are not yet verified on Etherscan.** The app is hosted at
+  [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app); source
+  verification of the two contracts is still pending.
 
 ## 🧩 Prior art
 
@@ -197,8 +204,8 @@ Notes: production builds use webpack (`bun run build` runs `next build
 conclave/
   contracts/   FHEVM Solidity (ConfidentialBallot, ConfidentialGovToken), Hardhat, tests, deploy
   web/         Next.js App Router frontend (wagmi + viem + relayer SDK, Tailwind)
-  docs/        README assets
-  brand.md     design tokens and voice
+  docs/        README assets, the design token sheet, submission drafts
+  brand.md     brand direction and voice (tokens live in docs/UI_DESIGN_SYSTEM.md)
 ```
 
 ## 📜 License

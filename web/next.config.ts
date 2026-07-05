@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   // stuck at 0 CPU). The empty turbopack config keeps `next dev` (Turbopack)
   // from aborting over the webpack block below.
   turbopack: {},
+  // Dev only: hides the floating route indicator so screenshots taken
+  // against `next dev` show the product alone (next docs: devIndicators).
+  devIndicators: false,
   // Applies to every `next build --webpack` (the production path). wagmi's
   // connector barrel pulls optional wallet packages (porto, tempo accounts)
   // that are not installed; Turbopack ignores the unresolved optionals but
