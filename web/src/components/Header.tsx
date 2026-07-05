@@ -8,9 +8,21 @@ import { SealStamp } from "@/components/ui/SealStamp";
 import { SEPOLIA_CHAIN_ID } from "@/lib/addresses";
 import { shortenAddress } from "@/lib/format";
 
+/// Human phrasing for a failed connect attempt. Distinct failure modes get
+/// distinct, actionable lines; anything else surfaces the wallet's own words.
+function describeConnectError(error: Error): string {
+  if (error.name === "ProviderNotFoundError" || error.message.includes("Provider not found")) {
+    return "No wallet found in this browser. Install MetaMask, then reload.";
+  }
+  if (/rejected|denied/i.test(error.message)) {
+    return "Connection request rejected in the wallet.";
+  }
+  return "shortMessage" in error && typeof error.shortMessage === "string" ? error.shortMessage : error.message;
+}
+
 export function Header() {
   const { address, isConnected, chainId } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
+  const { connect, connectors, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
   const injectedConnector = connectors[0];
@@ -57,15 +69,22 @@ export function Header() {
             </button>
           </div>
         ) : (
-          <ActionButton
-            label="Connect wallet"
-            pendingLabel="Connecting..."
-            isPending={isPending}
-            disabled={!injectedConnector}
-            onClick={() => {
-              if (injectedConnector) connect({ connector: injectedConnector });
-            }}
-          />
+          <div className="flex items-center gap-3">
+            {connectError && (
+              <span role="alert" className="max-w-56 text-right text-xs leading-tight text-no">
+                {describeConnectError(connectError)}
+              </span>
+            )}
+            <ActionButton
+              label="Connect wallet"
+              pendingLabel="Connecting..."
+              isPending={isPending}
+              disabled={!injectedConnector}
+              onClick={() => {
+                if (injectedConnector) connect({ connector: injectedConnector });
+              }}
+            />
+          </div>
         )}
       </div>
     </header>
