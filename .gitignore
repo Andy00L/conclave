@@ -27,3 +27,6 @@ contracts/dist/
 
 # Agent scratch
 .scratch/
+
+# Claude Design drop (raw generated drafts, integrated then discarded)
+.design-drop/
