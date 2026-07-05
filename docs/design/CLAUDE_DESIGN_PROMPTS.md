@@ -327,3 +327,284 @@ theme and would pull generations back to it.
    `conclave/.design-drop/` and return it with the variant notes. The
    session re-tokenizes, wires real data and states, and gates it;
    generated code is a draft, never merged as-is.
+
+---
+
+## 7. Intro animation (the 15-second product presentation)
+
+A separate Claude Design conversation from the UI screens. One system prompt,
+one piece prompt, generated together in the first message. Output is a
+self-contained HTML file the human screen-records as the first 15 seconds of
+the demo video. It is a fast, premium presentation of the REAL Conclave UI in
+motion (a ballot card that votes, resolves, and pays) composed in THREE layers,
+so the hero card never floats alone in an empty field. Attach `palette-card.png`
+and `icon.svg`, plus `01-dashboard.png` for ambience. Watch it once through,
+then tweak one variable at a time ("same piece, denser ciphertext field", "same
+piece, slower push-in"). A rendered reference frame of the accepted take,
+re-attached, locks the look if a regeneration drifts.
+
+### 7.1 The system prompt (paste first)
+
+```
+You are building a 15-second animated product presentation that opens the
+Conclave demo video: a fast, premium showcase of the real Conclave interface
+in motion. Conclave is a confidential DAO governance dApp on Ethereum: votes
+are encrypted end to end, only the aggregate outcome is revealed, and a passing
+ballot pays its beneficiary a confidential amount from a treasury. Register:
+calm trust, editorial, ceremonial, but energetic in pace. The bar, never copied
+for pixels: Linear and Stripe product films (real UI in motion, kinetic labels,
+crisp cuts), Wealthsimple (warm field, one bronze object, restraint). Single
+LIGHT theme. In one line: the actual product moving with confidence, a living
+warm workspace around it, one bronze seal, the only drama is the reveal.
+
+COMPOSE THREE LAYERS (a card alone on an empty field is the failure mode)
+The single most common miss is a hero card floating in a big void. Do not do
+that. Stack three layers, back to front, and keep them all alive:
+  1. AMBIENT (background and edges): the warm field, out-of-focus ghost ballot
+     cards, a slow-drifting ciphertext field, and thin frame furniture at the
+     corners and edges. This is what fills the "outer layer". It is always
+     present, always subordinate: low opacity, blurred, slow.
+  2. HERO (center): the one sharp, fully-lit ballot card. It is the only
+     in-focus, high-contrast object on screen, so the eye locks to it.
+  3. FINISHING (on top): grain, a feathered vignette, one specular sweep, depth
+     of field. Dialed low, felt not seen.
+Restraint rule stays absolute: the ambient layer must never compete with the
+hero. If a background element is as sharp or as bright as the card, it is wrong.
+
+WHAT THIS IS (read this twice)
+- It shows the REAL Conclave UI: an actual ballot card, an actual vote sealing
+  into a ciphertext chip, the actual tally bar revealing, the actual wax seal
+  stamping the verdict, an actual balance flipping from sealed to clear. Build
+  the product's own components and animate them. Short kinetic labels annotate
+  each moment.
+- Fast but premium: a new focal moment lands about every 1 to 1.5 seconds, one
+  dominant motion at a time, a beat of stillness between moments.
+
+OUTPUT
+- A single self-contained HTML file: inline CSS and JS, one Google Fonts link
+  allowed (Fraunces, Geist, Geist Mono). No framework, no build step, no
+  external asset besides the fonts.
+- A 1920x1080 (16:9) stage, centered, meant to be screen-recorded. It plays
+  once on load and then holds the final card perfectly still. Pressing R
+  restarts it. Honor prefers-reduced-motion: land straight on the held end
+  card, same final composition, no motion (ambient drift, ticker, and sweeps
+  all freeze).
+- Animate transform and opacity only, hold 60fps. Every value below is a token;
+  never invent a color, a duration, or an easing that is not listed.
+
+TOKENS (exact)
+- Field #F4F1E9, never flat:
+    radial-gradient(1100px 500px at 50% -10%, rgba(154,91,19,0.06), transparent 60%),
+    radial-gradient(130% 100% at 50% 50%, transparent 60%, rgba(28,25,23,0.045) 100%),
+    #F4F1E9
+- Card surface #FBFAF5. Recessed well (chips, the tally track) #EDE9DE with
+  inset 0 1px 2px rgba(28,25,23,0.06). Hairline rgba(28,25,23,0.08); strong
+  rgba(28,25,23,0.16).
+- Ink #1C1917; ink-soft #322D28; muted #57534E; faint #736E64 (nothing lighter
+  carries text).
+- ONE accent: bronze #9A5B13 (deep #7A470E). The only saturated color at rest:
+  the eyebrow, the lock glyphs, the "Voting" pill, the seal, the frame marks.
+- Reserved verdict colors, used ONLY on the pill, the tally, and the seal: yes
+  #25704F (wash rgba(37,112,79,0.10)), no #A63D32 and its wash
+  rgba(166,61,50,0.4).
+- Type: Fraunces (serif) for the card titles, the labels, and the wordmark
+  (weight 550, letter-spacing -0.015em). Geist Mono for the eyebrow, the meta
+  row, the chips, the counts, the frame furniture, the footnote (11 to 13px;
+  uppercase where it is a label; tracking 0.14em to 0.18em). Numbers tabular.
+- Radii: 8 to 10px chips, 18px cards, 999px pills. Card padding 24px.
+
+THE MATERIAL (the hero card, exactly this, never nested)
+  background #FBFAF5; border 1px rgba(28,25,23,0.08); border-radius 18px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6),      /* a faint bright top edge */
+              0 1px 2px rgba(28,25,23,0.05),
+              0 8px 24px -12px rgba(28,25,23,0.10),
+              0 24px 48px -28px rgba(28,25,23,0.08);
+  One light from above; every shadow agrees with it. The hero card is fully
+  sharp; ghost cards reuse this shape but blurred and dimmed.
+
+THE PRODUCT COMPONENTS (the hero, real UI)
+- Ballot card: Fraunces title, a state pill top right (bronze "Voting" with a
+  small breathing dot, or green "Passed" with a still dot), a mono meta row
+  ("BALLOT 4" + middot + "BENEFICIARY" + a mono chip "0x15f8...0cef" + middot +
+  a ciphertext chip "payout"), then a single body slot (see ONE BODY SLOT).
+- Ciphertext chip: a #EDE9DE well with a hairline, radius 8 to 10px, a bronze
+  lock glyph + a label + three shade blocks (U+2592). Every sealed value is
+  this chip, never plain text.
+- Vote buttons: an ink pill "Vote yes" (background #1C1917, text #F7F5EF) and a
+  quiet hairline pill "Vote no".
+- Tally block: a 12px pill track (well bg), a green #25704F fill growing from
+  the left, the losing side the no wash rgba(166,61,50,0.4), two mono tabular
+  counts "2 yes" (green) and "1 no" (muted).
+- Wax seal: an SVG ring (1.5px stroke at 45% opacity) around a filled core,
+  bronze at rest, green when it stamps the passed verdict.
+
+THE AMBIENT / OUTER LAYER (build every item; this is what the field was missing)
+- Ghost ballot cards: 2 or 3 copies of the card silhouette placed off-center
+  behind the hero (one upper-left, one lower-right, one far), heavily blurred
+  (depth of field, blur 10 to 16px), low opacity (0.20 to 0.35), each drifting
+  a few px on its own 14 to 20s loop at a different rate (parallax). They imply
+  a whole ledger of ballots, not one lonely card. Never sharp, never readable.
+- Ciphertext field: 14 to 22 small mono fragments scattered across the frame,
+  mostly toward the edges, each a faint (opacity 0.05 to 0.10) truncated hex or
+  shade-block token like "0x9af3", "(three blocks)", "euint64", a lock glyph.
+  They drift very slowly on 16 to 24s loops with slight parallax and a 2 to 4px
+  blur. The air itself is encrypted. Near-subliminal, never a focal point.
+- Frame furniture (the small edge details): a 1px hairline inset frame about
+  44px from each edge at 0.06 opacity; a thin bronze L-mark in each of the four
+  corners (registration marks); top-left a faint mono eyebrow "CONCLAVE (middot)
+  CONFIDENTIAL LEDGER"; bottom-left a faint mono "SEPOLIA"; bottom-right a live
+  mono block ticker "BLOCK 8 42X XXX" whose last two digits odometer-roll up
+  once about every 2s (a quiet sign of a live chain). All frame furniture sits
+  at 0.25 to 0.4 opacity, never brighter than the muted ink.
+- The bronze seal watermark: one very large faint ring (opacity about 0.05)
+  centered behind the hero, breathing scale 1.03 to 1 across the whole piece; it
+  resolves into the solid end-card seal.
+
+DEPTH, LIGHT, AND FINISHING (apply last, dialed low, felt not seen)
+- Depth of field: the ambient layer is blurred (ghost cards 10 to 16px, motes 2
+  to 4px); the hero card and its labels are perfectly sharp. This separation is
+  what reads as premium.
+- One specular sweep: a single soft light band crosses the hero card once, at
+  the reveal (about 8.6s), under 900ms, low opacity. Never twice.
+- Film grain over everything at 4% opacity, hopped in steps (a small tiling
+  noise translated frame to frame) so it reads as film, not a dirty screen.
+- The warm grade and the feathered vignette are already in the field recipe. Do
+  not add a visible edge or a nameable glow.
+
+MOTION TOKENS
+- Durations: 150ms micro, 240ms standard moves, 380 to 460ms the tally reveal,
+  520ms the count-up; ambient loops 14 to 24s. Exits run about 20% shorter.
+- Easings: enter cubic-bezier(0.16,1,0.3,1); standard cubic-bezier(0.4,0,0.2,1);
+  exit cubic-bezier(0.4,0,1,1). Never a default or linear easing (linear only
+  on the constant grain hop, the ambient drift, and the slow push-in).
+- One stagger constant: 60ms. Overshoots, budgeted: the wax seal stamp (scale
+  1.12 to 1) and the button press (scale 0.97), nothing else. One camera family:
+  a slow push-in over the whole piece (scale 1 to about 1.02, linear) plus the
+  card carrying one matched cut between voting and resolved, so no flat
+  crossfade between disconnected scenes.
+
+ONE BODY SLOT (this fixes the collisions; obey it strictly)
+The hero card has exactly ONE body region under the meta row. It holds ONE
+state at a time. When a state changes, the outgoing content fully fades and
+lifts out (150ms, exit easing) and is removed BEFORE the incoming content
+enters (240ms, enter easing). Never render two states in that slot at once:
+never a clock line behind a vote confirmation, never the vote buttons under a
+chip, never the tally under the buttons. The card body's height may ease
+between states, but only one set of elements is ever visible in it. The same
+rule applies to the label under the card: one line at a time, the old exits
+before the new enters.
+
+NEVER
+- No second accent, no electric blue, no gradient besides the field radial, no
+  dark theme, no pure #FFFFFF, no pure black.
+- No default or linear easing on a move, no scale-from-0, no layout-property
+  animation, no two dominant motions at once, no stagger of 100ms or more.
+- No sharp or bright background element; the ambient layer is always blurred
+  and dim. No overlapping body states (see ONE BODY SLOT).
+- No title case (sentence case; mono labels uppercase). No lorem ipsum, no fake
+  round numbers: use the exact sample data in the piece prompt.
+- No invented product UI: no nav, no footer chrome, no charts, no stats the
+  piece does not name.
+```
+
+### 7.2 The piece prompt (paste right after the system prompt)
+
+```
+Build the piece. 15 seconds, one timeline, three layers, the real Conclave UI in
+motion with short kinetic labels, at these exact timestamps. Fast pace: a new
+focal moment about every 1 to 1.5 seconds, one dominant motion at a time, a beat
+of stillness between moments. All text is real HTML (crisp). The hero card is
+the lead and carries every cut; the ambient layer lives underneath the whole
+time.
+
+THE ONE JOB: in 15 seconds, show a stranger the whole Conclave flow, vote
+sealed, tally revealed, money paid in secret, inside a living confidential
+workspace. The held moment is the green seal stamping the passed verdict.
+
+BEAT 0, the workspace wakes (0.0s to 0.9s), ambient only, no hero yet
+- 0.0s: the warm field. The large faint bronze seal watermark begins its slow
+  breath.
+- 0.2s: the ambient layer fades up over 700ms: 2 or 3 blurred ghost ballot
+  cards drift in at the edges, the ciphertext field (14 to 22 faint drifting
+  fragments) begins its slow loops, and the frame furniture draws on (the 1px
+  inset frame, the four bronze corner marks, top-left "CONCLAVE (middot)
+  CONFIDENTIAL LEDGER", bottom-left "SEPOLIA", bottom-right the block ticker
+  starting to roll). All of it stays dim and blurred.
+
+BEAT 1, the hero card arrives (0.9s to 3.0s)
+- 0.9s: the sharp hero card fade-rises 16px into center, 240ms, enter easing:
+  Fraunces title "Fund the Q3 open-source grant round (250 cGOV)", a bronze
+  "Voting" pill with a breathing dot top right. It is the only in-focus object.
+- 1.4s: its meta row assembles on the 60ms stagger: mono "BALLOT 4", the
+  beneficiary chip "0x15f8...0cef", the ciphertext chip "payout".
+- 1.9s: BODY STATE A enters the slot: a mono clock line "Closes in 06:14:22"
+  (the last two digits tick down once a second) with the two vote pills below,
+  ink "Vote yes" and quiet "Vote no".
+- 2.3s: the label rises under the card: "A ballot on Ethereum. Its payout is
+  already sealed."
+
+BEAT 2, the vote seals (3.0s to 6.2s)
+- 3.2s: "Vote yes" presses (scale 0.97 and back, 150ms) with one bronze
+  focus-ring flash.
+- 3.5s: BODY STATE A clears: the clock line and both pills fade and lift out
+  (150ms, exit easing) and are removed.
+- 3.75s: BODY STATE B enters the cleared slot: a green check + "Your encrypted
+  vote is in.", and below it a sealed ciphertext chip "your vote (three
+  blocks)" fade-rises. Nothing overlaps; the slot held A, now holds B.
+- 4.1s: one ciphertext fragment out in the ambient field brightens briefly and
+  drifts away (the vote joining the encrypted air), then settles back to faint.
+- 4.4s: the label swaps (old exits up 150ms, new enters 240ms): "Encrypted in
+  the browser. On-chain, just a handle."
+
+BEAT 3, the reveal (6.2s to 10.0s), the same card resolves
+- 6.4s: matched cut: the card lifts 8px; its "Voting" pill crossfades to a green
+  "Passed" pill (the pill only, 240ms); BODY STATE B clears out (150ms).
+- 6.7s: BODY STATE C enters: the tally block. The bar grows from the left
+  (scaleX 0 to 1, transform-origin left, 440ms, enter easing), green about 64%,
+  the rest the no wash.
+- 7.1s: the two counts count up 520ms, decelerating, tabular: green "2 yes",
+  muted "1 no".
+- 8.0s: the label swaps to "The chain counted every vote without reading one."
+- 8.6s: the single specular sweep crosses the card (under 900ms), and the green
+  wax seal stamps in beside the tally (scale 1.12 to 1, 200ms, the overshoot)
+  with the line "Passed."
+
+BEAT 4, the confidential payout (10.0s to 12.3s)
+- 10.2s: a small treasury balance chip slides in at the card's lower edge, in
+  its own space: a ciphertext chip "balance (three blocks)".
+- 10.9s: it flips on the x-axis (200ms) to a mono tabular "500 cGOV" in ink; a
+  bronze underline draws under it left to right.
+- 11.3s: the label swaps to "Paid to the beneficiary. The amount never appeared
+  in clear."
+
+BEAT 5, the end card (12.3s to 15.0s), held
+- 12.5s: the hero card and the frame furniture recede and fade (300ms, exit
+  easing). The ciphertext fragments drift inward and dim toward the center.
+- 12.7s: the bronze seal travels to center and lands (a matched cut on the
+  seal), the watermark resolving into it.
+- 13.0s: the wordmark "Conclave" mask-rises under the seal (translateY 100% to
+  0), Fraunces about 100px, 700ms.
+- 13.8s: the tagline "Private votes. Public outcomes. Confidential money."
+  fade-rises, muted, about 21px, 600ms.
+- 14.3s: a mono footnote "BUILT ON ZAMA FHEVM (middot) LIVE ON SEPOLIA", faint,
+  12.5px, tracking 0.16em. Use a real middot glyph.
+- 14.4s to 15.0s: dead still. The cleanest frame; only the grain and the last
+  of the push-in move.
+
+CHECK BEFORE YOU OUTPUT
+- Three layers are alive: a blurred, dim ambient background (ghost cards,
+  ciphertext field, frame furniture, block ticker), a single sharp hero card,
+  and a low finishing pass. The field is never empty around the card.
+- ONE BODY SLOT held: no frame ever shows two body states at once (no clock
+  behind the confirmation, no buttons under a chip). Verify each transition.
+- One accent (bronze); verdict green and the losing wash only on the pill, the
+  tally, and the seal. The ambient layer is always dimmer and blurrier than the
+  hero.
+- One dominant motion per instant; the card carries the cuts; 60ms is the only
+  stagger; the seal stamp and the button press are the only overshoots; one
+  specular sweep, once.
+- Every label reads before it exits (short lines, about 1.5s each).
+- prefers-reduced-motion lands on the final card, identical layout, all drift
+  and ticking frozen.
+- Grain present but not nameable; the raw and finished frames differ.
+```
