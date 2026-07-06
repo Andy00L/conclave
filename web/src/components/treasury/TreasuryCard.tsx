@@ -10,7 +10,8 @@ import { SealedChip } from "@/components/ui/SealedChip";
 import { ConfidentialGovTokenAbi } from "@/lib/abi/ConfidentialGovToken";
 import { BALLOT_ADDRESS, GOV_TOKEN_ADDRESS } from "@/lib/addresses";
 import type { Failure } from "@/lib/result";
-import { decryptOwnBalance, mintConfidentialTokens, type TokenActionContext } from "@/lib/token/actions";
+import { fundTreasury } from "@/lib/ballots/actions";
+import { decryptOwnBalance, type TokenActionContext } from "@/lib/token/actions";
 import { useAsyncAction } from "@/lib/useAsyncAction";
 import { useOnchainClients } from "@/lib/useOnchainClients";
 
@@ -45,18 +46,25 @@ export function TreasuryCard() {
     };
   };
 
-  const submitFundTreasury = withTokenContext(async (context) => {
+  const submitFundTreasury = async (): Promise<{ ok: true } | Failure> => {
     if (!BALLOT_ADDRESS) return { ok: false, reason: "Contracts are not configured." };
     if (!AMOUNT_PATTERN.test(amount.trim())) return { ok: false, reason: "Enter the amount as a positive number." };
     if (decimals === undefined) return { ok: false, reason: "Token decimals are still loading. Retry in a moment." };
-    const result = await mintConfidentialTokens(context, {
-      recipient: BALLOT_ADDRESS,
-      amount: parseUnits(amount.trim(), decimals),
-    });
+    const clients = requireWriteClients();
+    if (!clients.ok) return clients;
+    const result = await fundTreasury(
+      {
+        publicClient: clients.publicClient,
+        walletClient: clients.walletClient,
+        getInstance: clients.getInstance,
+        ballotAddress: BALLOT_ADDRESS,
+      },
+      { amount: parseUnits(amount.trim(), decimals) },
+    );
     if (!result.ok) return result;
     setAmount("");
     return { ok: true };
-  });
+  };
 
   const submitDecryptBalance = withTokenContext(async (context) => {
     const result = await decryptOwnBalance(context);
@@ -72,8 +80,8 @@ export function TreasuryCard() {
         <h2 className="font-serif text-xl font-semibold tracking-tight">Treasury</h2>
       </div>
       <p className="mt-2 text-sm text-muted">
-        The ballot contract holds confidential cGOV: its balance is a ciphertext on-chain. Fund it here, then let
-        passing ballots spend it. Minting is open because cGOV is a testnet demo token.
+        The ballot contract holds confidential cGOV: its balance is a ciphertext on-chain. Fund it from your own cGOV
+        and a passing ballot pays its beneficiary from it. Voter stakes are held apart and never paid out.
       </p>
 
       <form
@@ -99,7 +107,7 @@ export function TreasuryCard() {
               <ActionButton
                 type="submit"
                 label="Fund"
-                pendingLabel="Minting..."
+                pendingLabel="Funding..."
                 isPending={pendingKey === "fund"}
                 disabled={isPending || !isConnected}
               />

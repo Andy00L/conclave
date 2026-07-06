@@ -89,6 +89,17 @@ export const ConfidentialBallotAbi = [
         "type": "uint256"
       }
     ],
+    "name": "NothingToWithdraw",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "ballotId",
+        "type": "uint256"
+      }
+    ],
     "name": "PayoutAlreadyExecuted",
     "type": "error"
   },
@@ -106,6 +117,17 @@ export const ConfidentialBallotAbi = [
       }
     ],
     "name": "SenderNotAllowedToUseHandle",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "ballotId",
+        "type": "uint256"
+      }
+    ],
+    "name": "StakeAlreadyWithdrawn",
     "type": "error"
   },
   {
@@ -202,13 +224,13 @@ export const ConfidentialBallotAbi = [
       {
         "indexed": false,
         "internalType": "uint64",
-        "name": "yesVotes",
+        "name": "yesWeight",
         "type": "uint64"
       },
       {
         "indexed": false,
         "internalType": "uint64",
-        "name": "noVotes",
+        "name": "noWeight",
         "type": "uint64"
       },
       {
@@ -257,6 +279,38 @@ export const ConfidentialBallotAbi = [
       }
     ],
     "name": "PublicDecryptionVerified",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "ballotId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      }
+    ],
+    "name": "StakeWithdrawn",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "funder",
+        "type": "address"
+      }
+    ],
+    "name": "TreasuryFunded",
     "type": "event"
   },
   {
@@ -372,6 +426,24 @@ export const ConfidentialBallotAbi = [
   {
     "inputs": [
       {
+        "internalType": "externalEuint64",
+        "name": "amount",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "inputProof",
+        "type": "bytes"
+      }
+    ],
+    "name": "fundTreasury",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "ballotId",
         "type": "uint256"
@@ -406,12 +478,12 @@ export const ConfidentialBallotAbi = [
       },
       {
         "internalType": "uint64",
-        "name": "yesVotes",
+        "name": "yesWeight",
         "type": "uint64"
       },
       {
         "internalType": "uint64",
-        "name": "noVotes",
+        "name": "noWeight",
         "type": "uint64"
       },
       {
@@ -465,7 +537,55 @@ export const ConfidentialBallotAbi = [
         "type": "address"
       }
     ],
+    "name": "getLockedStake",
+    "outputs": [
+      {
+        "internalType": "euint64",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "ballotId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      }
+    ],
     "name": "hasVoted",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "ballotId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      }
+    ],
+    "name": "hasWithdrawn",
     "outputs": [
       {
         "internalType": "bool",
@@ -525,12 +645,30 @@ export const ConfidentialBallotAbi = [
         "type": "bytes32"
       },
       {
+        "internalType": "externalEuint64",
+        "name": "amount",
+        "type": "bytes32"
+      },
+      {
         "internalType": "bytes",
         "name": "inputProof",
         "type": "bytes"
       }
     ],
     "name": "vote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "ballotId",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdraw",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

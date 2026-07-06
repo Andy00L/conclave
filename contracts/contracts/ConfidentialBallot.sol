@@ -7,14 +7,16 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
 
 /// @title ConfidentialBallot
 /// @author Conclave
-/// @notice Governance ballots whose individual votes stay encrypted end to end,
-///         wired to a confidential treasury: a passing ballot pays its beneficiary
-///         an encrypted amount, so neither the votes nor the payout are ever public.
-/// @dev A vote adds an encrypted 1 to exactly one of two tallies via FHE.select, so no
-///      running count leaks and no observer can tell how an address voted. At close the
-///      tallies are made publicly decryptable; resolve() brings the cleartext result
-///      back on-chain, verified with FHE.checkSignatures. If the ballot passed,
-///      execute() moves the encrypted payout from this contract's treasury balance.
+/// @notice Stake-weighted governance ballots whose individual votes stay encrypted end to
+///         end, wired to a confidential treasury: a passing ballot pays its beneficiary an
+///         encrypted amount, so neither the votes, the weights, nor the payout are public.
+/// @dev A vote locks an encrypted amount of the ERC-7984 governance token in this contract
+///      and adds that encrypted weight to exactly one of two tallies via FHE.select, so no
+///      observer can tell how an address voted or with how much. The weight is provable by
+///      construction: the transfer caps at the voter's balance, so nobody votes with tokens
+///      they do not hold. After the ballot resolves, each voter withdraws their locked
+///      stake. The treasury is tracked in its own encrypted counter, funded only through
+///      fundTreasury, so a payout can never dip into voter stakes.
 contract ConfidentialBallot is ZamaEthereumConfig {
     /// @notice Lifecycle of a ballot.
     enum BallotState {
@@ -28,17 +30,17 @@ contract ConfidentialBallot is ZamaEthereumConfig {
         address beneficiary;
         uint64 startTime;
         uint64 endTime;
-        euint64 encryptedYes;
-        euint64 encryptedNo;
+        euint64 encryptedYes; // sum of yes-vote weights (encrypted)
+        euint64 encryptedNo; // sum of no-vote weights (encrypted)
         euint64 payoutAmount;
         BallotState state;
-        uint64 yesVotes; // populated at resolve()
-        uint64 noVotes; // populated at resolve()
+        uint64 yesWeight; // populated at resolve(), in token base units
+        uint64 noWeight; // populated at resolve(), in token base units
         bool passed; // populated at resolve()
         bool executed; // set once the payout has been sent
     }
 
-    /// @notice The confidential token paid out of this contract's treasury on a pass.
+    /// @notice The confidential token staked as voting weight and paid out on a pass.
     IERC7984 public immutable payoutToken;
 
     /// @dev All ballots, indexed by their position in this array (the ballot id).
@@ -47,11 +49,23 @@ contract ConfidentialBallot is ZamaEthereumConfig {
     /// @dev ballot id => voter => whether that voter already voted.
     mapping(uint256 ballotId => mapping(address voter => bool voted)) private _hasVoted;
 
+    /// @dev ballot id => voter => the encrypted weight that voter locked in this ballot.
+    mapping(uint256 ballotId => mapping(address voter => euint64 stake)) private _lockedStake;
+
+    /// @dev ballot id => voter => whether that voter already withdrew their stake.
+    mapping(uint256 ballotId => mapping(address voter => bool withdrawn)) private _hasWithdrawn;
+
+    /// @dev The treasury available for payouts, kept apart from voter stakes so a payout
+    ///      can never spend a stake. Funded only through fundTreasury, spent only by execute.
+    euint64 private _treasuryBalance;
+
     event BallotCreated(uint256 indexed ballotId, string description, address indexed beneficiary, uint64 endTime);
     event VoteCast(uint256 indexed ballotId, address indexed voter);
+    event TreasuryFunded(address indexed funder);
     event BallotClosed(uint256 indexed ballotId);
-    event BallotResolved(uint256 indexed ballotId, uint64 yesVotes, uint64 noVotes, bool passed);
+    event BallotResolved(uint256 indexed ballotId, uint64 yesWeight, uint64 noWeight, bool passed);
     event PayoutExecuted(uint256 indexed ballotId, address indexed beneficiary);
+    event StakeWithdrawn(uint256 indexed ballotId, address indexed voter);
 
     error InvalidDuration();
     error InvalidBeneficiary();
@@ -64,10 +78,14 @@ contract ConfidentialBallot is ZamaEthereumConfig {
     error BallotNotResolved(uint256 ballotId);
     error BallotNotPassed(uint256 ballotId);
     error PayoutAlreadyExecuted(uint256 ballotId);
+    error NothingToWithdraw(uint256 ballotId);
+    error StakeAlreadyWithdrawn(uint256 ballotId);
 
-    /// @param payoutToken_ The confidential ERC-7984 token held and paid out by this contract.
+    /// @param payoutToken_ The confidential ERC-7984 token staked and paid out by this contract.
     constructor(IERC7984 payoutToken_) {
         payoutToken = payoutToken_;
+        _treasuryBalance = FHE.asEuint64(0);
+        FHE.allowThis(_treasuryBalance);
     }
 
     /// @notice Create a ballot that, if it passes, pays `beneficiary` an encrypted amount.
@@ -104,8 +122,8 @@ contract ConfidentialBallot is ZamaEthereumConfig {
                 encryptedNo: initialNo,
                 payoutAmount: amount,
                 state: BallotState.Active,
-                yesVotes: 0,
-                noVotes: 0,
+                yesWeight: 0,
+                noWeight: 0,
                 passed: false,
                 executed: false
             })
@@ -114,17 +132,41 @@ contract ConfidentialBallot is ZamaEthereumConfig {
         // Keep both tallies usable by this contract for later adds and public decryption.
         FHE.allowThis(initialYes);
         FHE.allowThis(initialNo);
-        // The payout must stay usable by this contract (to move it) and by the token
-        // (to compute the transfer) when execute() runs in a later transaction.
+        // The payout must stay usable by this contract (to compute and move it) and by the
+        // token (to run the transfer) when execute() runs in a later transaction.
         FHE.allowThis(amount);
         FHE.allow(amount, address(payoutToken));
 
         emit BallotCreated(ballotId, description, beneficiary, endTime);
     }
 
-    /// @notice Cast one encrypted yes/no vote. `support` true adds to yes, false to no.
-    ///         One vote per address.
-    function vote(uint256 ballotId, externalEbool support, bytes calldata inputProof) external {
+    /// @notice Fund the payout treasury with an encrypted amount of the governance token.
+    ///         Anyone may top it up; the funded amount is tracked apart from voter stakes.
+    /// @dev The funder must first make this contract an operator on the token
+    ///      (token.setOperator), so this contract can pull the tokens.
+    function fundTreasury(externalEuint64 amount, bytes calldata inputProof) external {
+        euint64 contribution = FHE.fromExternal(amount, inputProof);
+        FHE.allow(contribution, address(payoutToken));
+
+        euint64 received = payoutToken.confidentialTransferFrom(msg.sender, address(this), contribution);
+
+        _treasuryBalance = FHE.add(_treasuryBalance, received);
+        FHE.allowThis(_treasuryBalance);
+
+        emit TreasuryFunded(msg.sender);
+    }
+
+    /// @notice Cast one stake-weighted vote. `support` true adds the locked weight to yes,
+    ///         false to no. One vote per address; the weight is the token amount locked.
+    /// @dev The voter must first make this contract an operator on the token
+    ///      (token.setOperator) so it can pull the stake. `support` and `amount` are two
+    ///      values in one encrypted input, sharing `inputProof`.
+    function vote(
+        uint256 ballotId,
+        externalEbool support,
+        externalEuint64 amount,
+        bytes calldata inputProof
+    ) external {
         Ballot storage ballot = _getBallot(ballotId);
         if (ballot.state != BallotState.Active) revert BallotNotActive(ballotId);
         if (block.timestamp > ballot.endTime) revert VotingPeriodOver(ballotId);
@@ -133,15 +175,24 @@ contract ConfidentialBallot is ZamaEthereumConfig {
         _hasVoted[ballotId][msg.sender] = true;
 
         ebool choice = FHE.fromExternal(support, inputProof);
-        euint64 one = FHE.asEuint64(1);
+        euint64 requestedStake = FHE.fromExternal(amount, inputProof);
+        FHE.allow(requestedStake, address(payoutToken));
+
+        // Pull the stake from the voter. The transfer caps at their balance, so the weight
+        // is the amount actually moved: nobody votes with tokens they do not hold.
+        euint64 weight = payoutToken.confidentialTransferFrom(msg.sender, address(this), requestedStake);
+
+        // Add the encrypted weight to exactly one tally, without revealing which.
         euint64 zero = FHE.asEuint64(0);
-
-        // Add 1 to exactly one tally, without revealing which one.
-        ballot.encryptedYes = FHE.add(ballot.encryptedYes, FHE.select(choice, one, zero));
-        ballot.encryptedNo = FHE.add(ballot.encryptedNo, FHE.select(choice, zero, one));
-
+        ballot.encryptedYes = FHE.add(ballot.encryptedYes, FHE.select(choice, weight, zero));
+        ballot.encryptedNo = FHE.add(ballot.encryptedNo, FHE.select(choice, zero, weight));
         FHE.allowThis(ballot.encryptedYes);
         FHE.allowThis(ballot.encryptedNo);
+
+        // Remember the locked weight so the voter can reclaim it after the ballot resolves.
+        _lockedStake[ballotId][msg.sender] = weight;
+        FHE.allowThis(weight);
+        FHE.allow(weight, address(payoutToken));
 
         emit VoteCast(ballotId, msg.sender);
     }
@@ -163,7 +214,8 @@ contract ConfidentialBallot is ZamaEthereumConfig {
     /// @notice Bring the decrypted tallies back on-chain. `cleartexts` and
     ///         `decryptionProof` come from the off-chain public decryption of the two
     ///         tally handles. checkSignatures reverts unless the KMS signed exactly
-    ///         these handles, so the stored result cannot be forged.
+    ///         these handles, so the stored result cannot be forged. The tallies are the
+    ///         summed yes and no weights, in token base units.
     function resolve(uint256 ballotId, bytes calldata cleartexts, bytes calldata decryptionProof) external {
         Ballot storage ballot = _getBallot(ballotId);
         if (ballot.state != BallotState.Revealing) revert BallotNotRevealing(ballotId);
@@ -173,19 +225,19 @@ contract ConfidentialBallot is ZamaEthereumConfig {
         handles[1] = FHE.toBytes32(ballot.encryptedNo);
         FHE.checkSignatures(handles, cleartexts, decryptionProof);
 
-        (uint64 yesVotes, uint64 noVotes) = abi.decode(cleartexts, (uint64, uint64));
-        ballot.yesVotes = yesVotes;
-        ballot.noVotes = noVotes;
-        ballot.passed = yesVotes > noVotes;
+        (uint64 yesWeight, uint64 noWeight) = abi.decode(cleartexts, (uint64, uint64));
+        ballot.yesWeight = yesWeight;
+        ballot.noWeight = noWeight;
+        ballot.passed = yesWeight > noWeight;
         ballot.state = BallotState.Resolved;
 
-        emit BallotResolved(ballotId, yesVotes, noVotes, ballot.passed);
+        emit BallotResolved(ballotId, yesWeight, noWeight, ballot.passed);
     }
 
     /// @notice Pay the beneficiary the encrypted payout if the ballot passed. The amount
     ///         stays confidential; only the fact that a payout happened becomes public.
-    /// @dev The treasury (this contract's ERC-7984 balance) must be funded beforehand.
-    ///      If it holds less than the payout, ERC-7984 transfers what is available.
+    /// @dev Draws only from the treasury counter, capped at the treasury balance, so voter
+    ///      stakes are never spent. Funding the treasury (fundTreasury) is a prerequisite.
     function execute(uint256 ballotId) external {
         Ballot storage ballot = _getBallot(ballotId);
         if (ballot.state != BallotState.Resolved) revert BallotNotResolved(ballotId);
@@ -193,9 +245,36 @@ contract ConfidentialBallot is ZamaEthereumConfig {
         if (ballot.executed) revert PayoutAlreadyExecuted(ballotId);
 
         ballot.executed = true;
-        payoutToken.confidentialTransfer(ballot.beneficiary, ballot.payoutAmount);
+
+        // Pay min(payout, treasury): never more than the treasury holds.
+        ebool payoutFits = FHE.le(ballot.payoutAmount, _treasuryBalance);
+        euint64 actualPayout = FHE.select(payoutFits, ballot.payoutAmount, _treasuryBalance);
+
+        _treasuryBalance = FHE.sub(_treasuryBalance, actualPayout);
+        FHE.allowThis(_treasuryBalance);
+        FHE.allowThis(actualPayout);
+        FHE.allow(actualPayout, address(payoutToken));
+
+        payoutToken.confidentialTransfer(ballot.beneficiary, actualPayout);
 
         emit PayoutExecuted(ballotId, ballot.beneficiary);
+    }
+
+    /// @notice Reclaim the stake locked when voting, once the ballot has resolved. One
+    ///         withdrawal per voter per ballot.
+    function withdraw(uint256 ballotId) external {
+        Ballot storage ballot = _getBallot(ballotId);
+        if (ballot.state != BallotState.Resolved) revert BallotNotResolved(ballotId);
+        if (!_hasVoted[ballotId][msg.sender]) revert NothingToWithdraw(ballotId);
+        if (_hasWithdrawn[ballotId][msg.sender]) revert StakeAlreadyWithdrawn(ballotId);
+
+        _hasWithdrawn[ballotId][msg.sender] = true;
+
+        euint64 stake = _lockedStake[ballotId][msg.sender];
+        FHE.allow(stake, address(payoutToken));
+        payoutToken.confidentialTransfer(msg.sender, stake);
+
+        emit StakeWithdrawn(ballotId, msg.sender);
     }
 
     /// @notice Number of ballots created so far.
@@ -215,8 +294,8 @@ contract ConfidentialBallot is ZamaEthereumConfig {
             uint64 startTime,
             uint64 endTime,
             BallotState state,
-            uint64 yesVotes,
-            uint64 noVotes,
+            uint64 yesWeight,
+            uint64 noWeight,
             bool passed,
             bool executed
         )
@@ -228,8 +307,8 @@ contract ConfidentialBallot is ZamaEthereumConfig {
             ballot.startTime,
             ballot.endTime,
             ballot.state,
-            ballot.yesVotes,
-            ballot.noVotes,
+            ballot.yesWeight,
+            ballot.noWeight,
             ballot.passed,
             ballot.executed
         );
@@ -241,9 +320,20 @@ contract ConfidentialBallot is ZamaEthereumConfig {
         return (ballot.encryptedYes, ballot.encryptedNo);
     }
 
+    /// @notice The encrypted weight `voter` locked in `ballotId`. Only the voter (and this
+    ///         contract) can decrypt it.
+    function getLockedStake(uint256 ballotId, address voter) external view returns (euint64) {
+        return _lockedStake[ballotId][voter];
+    }
+
     /// @notice Whether `voter` has already voted on `ballotId`.
     function hasVoted(uint256 ballotId, address voter) external view returns (bool) {
         return _hasVoted[ballotId][voter];
+    }
+
+    /// @notice Whether `voter` has already withdrawn their stake from `ballotId`.
+    function hasWithdrawn(uint256 ballotId, address voter) external view returns (bool) {
+        return _hasWithdrawn[ballotId][voter];
     }
 
     function _getBallot(uint256 ballotId) private view returns (Ballot storage) {

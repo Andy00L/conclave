@@ -43,11 +43,16 @@ contract adds them up without ever seeing them.
 
 ## 🗳 What it does
 
-- **Encrypted ballots.** A voter submits an `externalEbool` plus an input
-  proof. The contract adds an encrypted `1` to exactly one of two `euint64`
-  tallies with `FHE.select` and `FHE.add`, so no running count is ever exposed.
-- **One address, one vote.** `hasVoted[ballotId][voter]` blocks a second vote.
-  The choice stays encrypted; only the fact that an address voted is public.
+- **Stake-weighted encrypted ballots.** A voter locks an encrypted amount of
+  cGOV and submits an `externalEbool` choice. The contract adds that encrypted
+  weight to exactly one of two `euint64` tallies with `FHE.select` and
+  `FHE.add`, so no running total, and no individual weight, is ever exposed. The
+  transfer caps at the voter's balance, so nobody votes with tokens they do not
+  hold.
+- **One vote per address, stake returned after.** `hasVoted[ballotId][voter]`
+  blocks a second vote; the choice stays encrypted, only that an address voted
+  is public. Once the ballot resolves, each voter reclaims their locked stake
+  with `withdraw`.
 - **Aggregate-only reveal.** After the voting window, `closeBallot` makes both
   tallies publicly decryptable. The app calls the relayer `publicDecrypt`, then
   `resolve` posts the KMS-signed cleartexts back and the contract re-checks them
@@ -177,12 +182,16 @@ verify:sepolia` once `ETHERSCAN_API_KEY` is set.
 
 ## ⚠️ What is real and what is mocked
 
-- **Voting is one address, one vote.** The encrypted choice is real FHE, but the
-  vote is not token-weighted and there is no sybil resistance. A stake-weighted
-  mode (an encrypted weight backed by a token balance) is future work.
-- **cGOV is an open-mint test token.** `ConfidentialGovToken.mint` is public so a
-  demo treasury and the in-app faucet can hand out tokens on Sepolia. A real
-  deployment would restrict who can mint.
+- **Voting is stake-weighted, one vote per address.** The weight is the cGOV a
+  voter locks, provable because the transfer caps at their balance, and returned
+  after the ballot resolves. Locking real value resists cheap sybils, but a
+  whale can still outvote by staking more; a quadratic or reputation layer is
+  future work.
+- **cGOV mint is owner-only; the faucet is a testnet convenience.**
+  `ConfidentialGovToken.mint` is restricted to the token owner (a DAO or its
+  multisig in production). A public `faucetMint` hands each address a fixed 100
+  cGOV once, so demo users and judges get voting weight; it would not ship on
+  mainnet.
 - **The reveal trusts the Zama KMS and relayer.** Aggregate decryption is a
   threshold operation run by Zama's coprocessor and key-management network. The
   contract verifies their signatures with `FHE.checkSignatures`; it does not

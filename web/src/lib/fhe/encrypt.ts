@@ -33,3 +33,37 @@ export async function encryptExternalInput(
     return { ok: false, reason: describeUnknownError(caught, "Encrypting the input via the Zama relayer failed") };
   }
 }
+
+// Several handles produced from one encrypted input, sharing a single proof, as
+// the contracts expect for calls that take more than one encrypted argument.
+export type EncryptedArguments = { handles: Hex[]; inputProof: Hex };
+
+export type EncryptManyResult = { ok: true; value: EncryptedArguments } | Failure;
+
+/// Like encryptExternalInput but returns every handle the caller added, in
+/// order, so one proof can back several encrypted arguments (for example a
+/// stake-weighted vote that carries both the choice and the weight).
+export async function encryptExternalInputs(
+  getInstance: () => Promise<FhevmInstance>,
+  contractAddress: Address,
+  userAddress: Address,
+  addValues: (input: RelayerEncryptedInput) => RelayerEncryptedInput,
+): Promise<EncryptManyResult> {
+  let instance: FhevmInstance;
+  try {
+    instance = await getInstance();
+  } catch (caught) {
+    return { ok: false, reason: describeUnknownError(caught, "The FHE client failed to initialize") };
+  }
+
+  try {
+    const encrypted = await addValues(instance.createEncryptedInput(contractAddress, userAddress)).encrypt();
+    if (encrypted.handles.length === 0) return { ok: false, reason: "Encryption returned no handles." };
+    return {
+      ok: true,
+      value: { handles: encrypted.handles.map((handle) => toHex(handle)), inputProof: toHex(encrypted.inputProof) },
+    };
+  } catch (caught) {
+    return { ok: false, reason: describeUnknownError(caught, "Encrypting the input via the Zama relayer failed") };
+  }
+}

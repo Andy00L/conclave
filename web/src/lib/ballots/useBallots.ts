@@ -16,12 +16,15 @@ export type BallotView = {
   startTime: bigint;
   endTime: bigint;
   state: number;
-  yesVotes: bigint;
-  noVotes: bigint;
+  // Summed yes and no vote weights, in token base units (a stake-weighted tally).
+  yesWeight: bigint;
+  noWeight: bigint;
   passed: boolean;
   executed: boolean;
   // Whether the connected wallet already voted; false when disconnected.
   viewerHasVoted: boolean;
+  // Whether the connected wallet already reclaimed its stake; false when disconnected.
+  viewerHasWithdrawn: boolean;
 };
 
 // Ballots move on block timestamps (voting deadlines), so poll at a cadence
@@ -42,7 +45,7 @@ async function fetchBallots(
   const ballotIds = Array.from({ length: Number(count) }, (_unused, index) => BigInt(index));
   const ballots = await Promise.all(
     ballotIds.map(async (ballotId): Promise<BallotView> => {
-      const [ballot, viewerHasVoted] = await Promise.all([
+      const [ballot, viewerHasVoted, viewerHasWithdrawn] = await Promise.all([
         publicClient.readContract({
           address: ballotAddress,
           abi: ConfidentialBallotAbi,
@@ -57,8 +60,16 @@ async function fetchBallots(
               args: [ballotId, viewer],
             })
           : Promise.resolve(false),
+        viewer
+          ? publicClient.readContract({
+              address: ballotAddress,
+              abi: ConfidentialBallotAbi,
+              functionName: "hasWithdrawn",
+              args: [ballotId, viewer],
+            })
+          : Promise.resolve(false),
       ]);
-      const [description, beneficiary, startTime, endTime, state, yesVotes, noVotes, passed, executed] = ballot;
+      const [description, beneficiary, startTime, endTime, state, yesWeight, noWeight, passed, executed] = ballot;
       return {
         id: ballotId,
         description,
@@ -66,11 +77,12 @@ async function fetchBallots(
         startTime,
         endTime,
         state,
-        yesVotes,
-        noVotes,
+        yesWeight,
+        noWeight,
         passed,
         executed,
         viewerHasVoted,
+        viewerHasWithdrawn,
       };
     }),
   );

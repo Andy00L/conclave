@@ -2,8 +2,7 @@ import { zeroHash, type Account, type Address, type Chain, type Hex, type Public
 import type { FhevmInstance } from "@zama-fhe/relayer-sdk/web";
 import { ConfidentialGovTokenAbi } from "@/lib/abi/ConfidentialGovToken";
 import { describeTransactionError, describeUnknownError } from "@/lib/errors";
-import { encryptExternalInput } from "@/lib/fhe/encrypt";
-import { MAX_UINT64, submitTransaction } from "@/lib/ballots/actions";
+import { submitTransaction } from "@/lib/ballots/actions";
 import type { Failure, TxResult } from "@/lib/result";
 
 export type TokenActionContext = {
@@ -17,31 +16,15 @@ export type TokenActionContext = {
 // One day is enough for a session and keeps the granted window small.
 const USER_DECRYPT_VALIDITY_DAYS = 1;
 
-/// Mints confidential cGOV to `recipient` (the ballot contract, to fund its
-/// treasury). Minting is open on this demo token; see ConfidentialGovToken.sol.
-export async function mintConfidentialTokens(
-  context: TokenActionContext,
-  params: { recipient: Address; amount: bigint },
-): Promise<TxResult> {
-  if (params.amount <= 0n) return { ok: false, reason: "The mint amount must be positive." };
-  if (params.amount > MAX_UINT64) {
-    return { ok: false, reason: "The mint amount exceeds what an encrypted 64-bit value can hold." };
-  }
-
-  const encrypted = await encryptExternalInput(
-    context.getInstance,
-    context.tokenAddress,
-    context.walletClient.account.address,
-    (input) => input.add64(params.amount),
-  );
-  if (!encrypted.ok) return encrypted;
-
-  return submitTransaction(context.publicClient, "Minting failed", async () => {
+/// Claims the fixed test-token amount from the public faucet, once per address.
+/// A second claim reverts on-chain (FaucetAlreadyClaimed); mint proper is
+/// owner-only, see ConfidentialGovToken.sol.
+export async function claimFaucet(context: TokenActionContext): Promise<TxResult> {
+  return submitTransaction(context.publicClient, "Minting test tokens failed", async () => {
     const { request } = await context.publicClient.simulateContract({
       address: context.tokenAddress,
       abi: ConfidentialGovTokenAbi,
-      functionName: "mint",
-      args: [params.recipient, encrypted.value.handle, encrypted.value.inputProof],
+      functionName: "faucetMint",
       account: context.walletClient.account,
     });
     return context.walletClient.writeContract(request);

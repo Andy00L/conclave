@@ -3,8 +3,12 @@ import { ethers, network } from "hardhat";
 /// Deploy the confidential governance token and the ballot wired to it.
 /// Usage: hardhat run scripts/deploy.ts --network sepolia
 async function main() {
+  const [deployer] = await ethers.getSigners();
+
   const tokenFactory = await ethers.getContractFactory("ConfidentialGovToken");
-  const token = await tokenFactory.deploy("Conclave Gov", "cGOV", "");
+  // The deployer is the initial owner (the only minter). On a real deployment
+  // ownership would move to the DAO or its multisig.
+  const token = await tokenFactory.deploy("Conclave Gov", "cGOV", "", deployer.address);
   await token.waitForDeployment();
   const tokenAddress = await token.getAddress();
 
