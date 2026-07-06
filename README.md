@@ -3,10 +3,10 @@
 <h1 align="center">Conclave</h1>
 
 <p align="center">
-Confidential DAO governance on Ethereum. Each vote is encrypted in the browser
-and stays encrypted on-chain; the contract tallies the ciphertexts with FHE,
-reveals only the aggregate, and pays a passing ballot's beneficiary an amount
-that never appears in clear.
+Confidential DAO governance on Ethereum. Every vote is encrypted in the browser,
+and the contract adds the ciphertexts up with FHE without ever decrypting a
+single one. Only the aggregate outcome is revealed, and a passing ballot pays
+its beneficiary an amount that stays encrypted from the vote to the balance.
 </p>
 
 <p align="center">
@@ -18,8 +18,8 @@ that never appears in clear.
 <p align="center">
   <img src="https://img.shields.io/badge/encryption-FHEVM%20%28Zama%29-9a5b13" alt="encryption: FHEVM by Zama">
   <img src="https://img.shields.io/badge/network-Ethereum%20Sepolia-57534e" alt="network: Ethereum Sepolia">
-  <img src="https://img.shields.io/badge/token-ERC--7984-25704f" alt="token: ERC-7984">
-  <img src="https://img.shields.io/badge/frontend-Next.js%2016-1c1917" alt="frontend: Next.js 16">
+  <img src="https://img.shields.io/badge/contracts-verified-25704f" alt="contracts: verified on Etherscan">
+  <img src="https://img.shields.io/badge/token-ERC--7984-7a470e" alt="token: ERC-7984">
   <img src="https://img.shields.io/badge/tests-12%20passing-25704f" alt="tests: 12 passing">
   <img src="https://img.shields.io/badge/license-BSD--3--Clause--Clear-736e64" alt="license: BSD-3-Clause-Clear">
 </p>
@@ -103,17 +103,22 @@ one passed and paid, one rejected):
 
 <img src="docs/screenshots/02-ballots-full.png" width="900" alt="All ballot lifecycle states in the app: voting open, passed with confidential payout sent, rejected">
 
-
 ## 🔗 Live on Sepolia
 
-The app is hosted at [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app);
-connect a Sepolia wallet and every feature below is usable. Contracts deployed
-2026-07-03 on Ethereum Sepolia.
+The app is hosted at [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app).
+The contracts were deployed 2026-07-03 on Ethereum Sepolia and are verified on
+Etherscan, so the exact deployed Solidity is readable under each Contract tab.
 
 | Contract | Address | Link |
 | --- | --- | --- |
 | ConfidentialBallot | `0xb9e89A9819d740C723a448BF7D3513D13b7e4F53` | [verified code](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53#code) |
 | ConfidentialGovToken (cGOV) | `0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c` | [verified code](https://sepolia.etherscan.io/address/0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c#code) |
+
+**Try it in a minute.** Open the app and click Connect: a picker lists the
+injected wallets you have installed and moves the wallet to Sepolia. Then open
+the Test tokens panel, which links a Sepolia ETH faucet for gas and mints 100
+cGOV to your address. That is everything you need to create a ballot, vote on
+the open one, and decrypt your own balance, with no external setup.
 
 Evidence:
 
@@ -128,15 +133,13 @@ Evidence:
   [contracts/scripts/stage-demo.ts](contracts/scripts/stage-demo.ts).
 - The full lifecycle is covered by 12 passing tests that run offline against the
   FHEVM mock, including a vote of two yes and one no that reveals `passed` and
-  pays the beneficiary exactly the encrypted amount:
+  pays the beneficiary exactly 250 cGOV, decryptable only by that beneficiary:
   [contracts/test/ConfidentialBallot.ts](contracts/test/ConfidentialBallot.ts).
 - Negative proof: `resolve` calls `FHE.checkSignatures(handles, cleartexts,
   decryptionProof)` before it trusts a count, so cleartexts that were not signed
-  by the KMS over those exact handles revert the transaction:
+  by the KMS over those exact handles revert the transaction. Two tests also
+  prove `execute` refuses to pay a failed ballot and refuses to pay twice:
   [contracts/contracts/ConfidentialBallot.sol](contracts/contracts/ConfidentialBallot.sol).
-
-Both contracts are verified on Etherscan, so the exact deployed Solidity is
-readable under the Contract tab linked in the table above.
 
 ## 🧪 Reproduce it
 
@@ -150,9 +153,9 @@ bun install
 bun run test
 ```
 
-Success looks like `12 passing`, run against the in-process FHEVM mock. The
-suite deploys fresh contracts in memory on each run and touches no network and
-no deployed instance.
+Success is `12 passing`, run against the in-process FHEVM mock. The suite
+deploys fresh contracts in memory on each run and touches no network and no
+deployed instance.
 
 Run the frontend against the Sepolia contracts above (or skip this and use the
 hosted instance at [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app)):
@@ -167,8 +170,10 @@ bun run dev                  # http://localhost:3000
 Notes: production builds use webpack (`bun run build` runs `next build
 --webpack`) because the Turbopack build deadlocks on this project, documented in
 [web/next.config.ts](web/next.config.ts). Deploying your own instances is
-`cd contracts && bun run deploy:sepolia`, after setting `MNEMONIC` and
-`INFURA_API_KEY` with `bunx hardhat vars set`.
+`cd contracts && bun run deploy:sepolia` after setting `MNEMONIC` with `bunx
+hardhat vars set` (the RPC defaults to a public Sepolia node; override it with
+`SEPOLIA_RPC_URL`). Verify a fresh deployment on Etherscan with `bun run
+verify:sepolia` once `ETHERSCAN_API_KEY` is set.
 
 ## ⚠️ What is real and what is mocked
 
@@ -176,8 +181,8 @@ Notes: production builds use webpack (`bun run build` runs `next build
   vote is not token-weighted and there is no sybil resistance. A stake-weighted
   mode (an encrypted weight backed by a token balance) is future work.
 - **cGOV is an open-mint test token.** `ConfidentialGovToken.mint` is public so a
-  demo treasury can be funded on Sepolia. A real deployment would restrict who
-  can mint.
+  demo treasury and the in-app faucet can hand out tokens on Sepolia. A real
+  deployment would restrict who can mint.
 - **The reveal trusts the Zama KMS and relayer.** Aggregate decryption is a
   threshold operation run by Zama's coprocessor and key-management network. The
   contract verifies their signatures with `FHE.checkSignatures`; it does not
