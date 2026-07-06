@@ -30,3 +30,8 @@ contracts/dist/
 
 # Claude Design drop (raw generated drafts, integrated then discarded)
 .design-drop/
+
+# Personal working files: design experiments and submission drafts.
+# Kept locally, not in the public repo (untracked with git rm --cached).
+docs/design/
+docs/submission/

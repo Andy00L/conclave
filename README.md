@@ -227,7 +227,7 @@ verify:sepolia` once `ETHERSCAN_API_KEY` is set.
 conclave/
   contracts/   FHEVM Solidity (ConfidentialBallot, ConfidentialGovToken), Hardhat, tests, deploy
   web/         Next.js App Router frontend (wagmi + viem + relayer SDK, Tailwind)
-  docs/        README assets, the design token sheet, submission drafts
+  docs/        README assets (icon, screenshots) and the design token sheet
   brand.md     brand direction and voice (tokens live in docs/UI_DESIGN_SYSTEM.md)
 ```
 
