@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { FhevmInstance } from "@zama-fhe/relayer-sdk/web";
 import { SEPOLIA_RPC_URL } from "@/lib/addresses";
 
@@ -48,6 +48,22 @@ export function FheProvider({ children }: { children: React.ReactNode }) {
     pendingRef.current = load;
     return load;
   }, []);
+
+  // Pre-warm the FHE client shortly after load: start the WASM init and key
+  // fetch in the background so the first vote, mint, or ballot creation does not
+  // pay that cost at click time (that was the freeze between click and wallet
+  // popup). getInstance is idempotent (ref-cached), so the action path reuses
+  // this load. Deferred a tick so the load's status update never runs
+  // synchronously inside the effect. External system: the Zama relayer SDK WASM.
+  useEffect(() => {
+    const warmUpTimer = setTimeout(() => {
+      void getInstance().catch(() => {
+        // A failed pre-warm is non-fatal: the action path calls getInstance
+        // again and surfaces the error there.
+      });
+    }, 0);
+    return () => clearTimeout(warmUpTimer);
+  }, [getInstance]);
 
   return <FheContext.Provider value={{ status, error, getInstance }}>{children}</FheContext.Provider>;
 }
