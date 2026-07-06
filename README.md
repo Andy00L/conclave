@@ -112,13 +112,15 @@ connect a Sepolia wallet and every feature below is usable. Contracts deployed
 
 | Contract | Address | Link |
 | --- | --- | --- |
-| ConfidentialBallot | `0xb9e89A9819d740C723a448BF7D3513D13b7e4F53` | [view](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53) |
-| ConfidentialGovToken (cGOV) | `0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c` | [view](https://sepolia.etherscan.io/address/0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c) |
+| ConfidentialBallot | `0xb9e89A9819d740C723a448BF7D3513D13b7e4F53` | [verified code](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53#code) |
+| ConfidentialGovToken (cGOV) | `0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c` | [verified code](https://sepolia.etherscan.io/address/0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c#code) |
 
 Evidence:
 
-- The ballot contract is live on Sepolia (bytecode present since 2026-07-03):
-  [view on Etherscan](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53).
+- Both contracts are deployed and verified on Sepolia Etherscan (Solidity
+  source under the Contract tab):
+  [ballot](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53#code)
+  and [token](https://sepolia.etherscan.io/address/0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c#code).
 - Ballot 4, "Fund the Q3 open-source grant round", is open for a week: connect
   a Sepolia wallet and cast an encrypted vote yourself. Ballot 2 resolved 2 to 1
   and its 750 cGOV payout was executed confidentially; ballot 3 resolved 1 to 2
@@ -133,8 +135,8 @@ Evidence:
   by the KMS over those exact handles revert the transaction:
   [contracts/contracts/ConfidentialBallot.sol](contracts/contracts/ConfidentialBallot.sol).
 
-The contracts are not yet verified on Etherscan; this is noted in
-[what is real and what is mocked](#-what-is-real-and-what-is-mocked).
+Both contracts are verified on Etherscan, so the exact deployed Solidity is
+readable under the Contract tab linked in the table above.
 
 ## 🧪 Reproduce it
 
@@ -182,9 +184,6 @@ Notes: production builds use webpack (`bun run build` runs `next build
   replace them.
 - **Final tallies are public by design.** After `resolve`, the yes and no counts
   are on-chain. Only the individual votes and the payout amount stay encrypted.
-- **Contracts are not yet verified on Etherscan.** The app is hosted at
-  [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app); source
-  verification of the two contracts is still pending.
 
 ## 🧩 Prior art
 

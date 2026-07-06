@@ -20,9 +20,10 @@ const SEPOLIA_RPC_URL: string = vars.get("SEPOLIA_RPC_URL", "https://ethereum-se
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   etherscan: {
-    apiKey: {
-      sepolia: vars.get("ETHERSCAN_API_KEY", ""),
-    },
+    // A single Etherscan.io key uses the Etherscan API V2 (one key across all
+    // chains). The old per-network { sepolia: ... } shape hits the deprecated
+    // V1 endpoint, which Etherscan turned off in 2025.
+    apiKey: vars.get("ETHERSCAN_API_KEY", ""),
     // Without a key the etherscan provider aborts the verify task; disable it
     // until ETHERSCAN_API_KEY is set so sourcify can run on its own.
     enabled: vars.get("ETHERSCAN_API_KEY", "") !== "",
