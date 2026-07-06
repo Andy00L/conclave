@@ -20,7 +20,7 @@ its beneficiary an amount that stays encrypted from the vote to the balance.
   <img src="https://img.shields.io/badge/network-Ethereum%20Sepolia-57534e" alt="network: Ethereum Sepolia">
   <img src="https://img.shields.io/badge/contracts-verified-25704f" alt="contracts: verified on Etherscan">
   <img src="https://img.shields.io/badge/token-ERC--7984-7a470e" alt="token: ERC-7984">
-  <img src="https://img.shields.io/badge/tests-12%20passing-25704f" alt="tests: 12 passing">
+  <img src="https://img.shields.io/badge/tests-20%20passing-25704f" alt="tests: 20 passing">
   <img src="https://img.shields.io/badge/license-BSD--3--Clause--Clear-736e64" alt="license: BSD-3-Clause-Clear">
 </p>
 
@@ -57,9 +57,11 @@ contract adds them up without ever seeing them.
   tallies publicly decryptable. The app calls the relayer `publicDecrypt`, then
   `resolve` posts the KMS-signed cleartexts back and the contract re-checks them
   with `FHE.checkSignatures`. Individual votes never decrypt.
-- **Confidential treasury payout.** Each ballot carries a beneficiary and an
-  encrypted `euint64` payout. On a pass, `execute` moves it with ERC-7984
-  `confidentialTransfer`, so the amount stays encrypted from vote to payment.
+- **Confidential treasury payout, capped.** The treasury is funded separately
+  with `fundTreasury` and tracked apart from voter stakes. On a pass, `execute`
+  pays the beneficiary with ERC-7984 `confidentialTransfer`, but first caps the
+  amount at the treasury balance with `FHE.le` and `FHE.select`, so a ballot can
+  never spend the stakes voters locked. The payout stays encrypted end to end.
 - **Simulate-first actions.** Every write simulates before the wallet opens, so
   reverts such as `AlreadyVoted` or `VotingPeriodOver` arrive as readable
   messages instead of failed transactions.
@@ -69,14 +71,15 @@ contract adds them up without ever seeing them.
 ```mermaid
 flowchart TD
     subgraph browser["In the browser"]
-        voter["Voter"] -->|"encrypt choice + proof"| voteTx["vote(ballotId, ebool, proof)"]
+        voter["Voter"] -->|"encrypt choice + weight + proof"| voteTx["vote(id, ebool, euint64, proof)"]
         app["App"]
     end
     subgraph chain["Ethereum Sepolia"]
         voteTx --> ballot["ConfidentialBallot"]
-        ballot -->|"FHE.select + FHE.add"| tallies["two euint64 tallies (sealed)"]
+        ballot -->|"confidentialTransferFrom pulls the encrypted stake"| token["ConfidentialGovToken"]
+        ballot -->|"FHE.select + FHE.add the weight"| tallies["two euint64 tallies (sealed)"]
         resolve["resolve(cleartexts, proof)"] -->|"FHE.checkSignatures"| ballot
-        ballot -->|"on pass: confidentialTransfer"| token["ConfidentialGovToken"]
+        ballot -->|"on pass: execute, capped at the treasury"| token
         token --> beneficiary["Beneficiary balance (encrypted)"]
     end
     subgraph zama["Zama coprocessor and KMS"]
@@ -87,20 +90,23 @@ flowchart TD
 ```
 
 The diagram shows the happy path. The guards carry the rest. A vote outside the
-window reverts with `VotingPeriodOver`, a repeat vote with `AlreadyVoted`, and
-`closeBallot` only runs after `endTime`. `resolve` reverts unless the cleartexts
-carry the KMS signatures over exactly those two tally handles, so a tampered
-count cannot land. `execute` is gated by `passed` and by an `executed` flag, so
-a failed ballot pays nothing and a passing one pays once. If the treasury holds
-less than the payout, ERC-7984 transfers what is available rather than reverting.
+window reverts with `VotingPeriodOver`, a repeat vote with `AlreadyVoted`, and a
+voter who has not authorized the ballot as a token operator with
+`ERC7984UnauthorizedSpender`. `closeBallot` only runs after `endTime`. `resolve`
+reverts unless the cleartexts carry the KMS signatures over exactly those two
+tally handles, so a tampered count cannot land. `execute` is gated by `passed`
+and an `executed` flag, and caps the payout at the separately funded treasury
+with `FHE.le` and `FHE.select`, so a failed ballot pays nothing, a passing one
+pays once, and neither can ever spend the stakes voters locked. After a ballot
+resolves, each voter reclaims that stake with `withdraw`.
 
 ### Ballot lifecycle
 
 | State | Entered by | Public after this step | Stays encrypted |
 | --- | --- | --- | --- |
-| Active | `createBallot`, `vote` | description, beneficiary, window, that an address voted | the choice, both tallies, the payout amount |
+| Active | `createBallot`, `vote` | description, beneficiary, window, that an address voted | the choice, the stake weight, both tallies, the payout amount |
 | Revealing | `closeBallot` | tally handles marked publicly decryptable | every individual vote |
-| Resolved | `resolve` | yes and no counts, `passed` | the payout amount |
+| Resolved | `resolve` | yes and no weight totals, `passed` | the payout amount |
 | Paid | `execute` | that a payout happened (`PayoutExecuted`) | the payout amount and the beneficiary balance |
 
 Every state above, live on Sepolia with real encrypted votes (one ballot open,
@@ -111,13 +117,13 @@ one passed and paid, one rejected):
 ## 🔗 Live on Sepolia
 
 The app is hosted at [conclave-alpha.vercel.app](https://conclave-alpha.vercel.app).
-The contracts were deployed 2026-07-03 on Ethereum Sepolia and are verified on
+The contracts were deployed 2026-07-06 on Ethereum Sepolia and are verified on
 Etherscan, so the exact deployed Solidity is readable under each Contract tab.
 
 | Contract | Address | Link |
 | --- | --- | --- |
-| ConfidentialBallot | `0xb9e89A9819d740C723a448BF7D3513D13b7e4F53` | [verified code](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53#code) |
-| ConfidentialGovToken (cGOV) | `0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c` | [verified code](https://sepolia.etherscan.io/address/0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c#code) |
+| ConfidentialBallot | `0x6a66FE78bc3fF6C08Ef977D16ec16aa8EfCA7e09` | [verified code](https://sepolia.etherscan.io/address/0x6a66FE78bc3fF6C08Ef977D16ec16aa8EfCA7e09#code) |
+| ConfidentialGovToken (cGOV) | `0xeb666d7F4c6Ca8AB8430A0CC63Cf6cad81b74DA1` | [verified code](https://sepolia.etherscan.io/address/0xeb666d7F4c6Ca8AB8430A0CC63Cf6cad81b74DA1#code) |
 
 **Try it in a minute.** Open the app and click Connect: a picker lists the
 injected wallets you have installed and moves the wallet to Sepolia. Then open
@@ -129,22 +135,25 @@ Evidence:
 
 - Both contracts are deployed and verified on Sepolia Etherscan (Solidity
   source under the Contract tab):
-  [ballot](https://sepolia.etherscan.io/address/0xb9e89A9819d740C723a448BF7D3513D13b7e4F53#code)
-  and [token](https://sepolia.etherscan.io/address/0x62D93Eac4719F33DAab75f6B8E1aE4DDdd96223c#code).
-- Ballot 4, "Fund the Q3 open-source grant round", is open for a week: connect
-  a Sepolia wallet and cast an encrypted vote yourself. Ballot 2 resolved 2 to 1
-  and its 750 cGOV payout was executed confidentially; ballot 3 resolved 1 to 2
-  and paid nothing. All staged by
+  [ballot](https://sepolia.etherscan.io/address/0x6a66FE78bc3fF6C08Ef977D16ec16aa8EfCA7e09#code)
+  and [token](https://sepolia.etherscan.io/address/0xeb666d7F4c6Ca8AB8430A0CC63Cf6cad81b74DA1#code).
+- Ballot 2, "Fund the Q3 open-source grant round", is open for a week: connect
+  a Sepolia wallet, claim cGOV, and cast a stake-weighted encrypted vote
+  yourself. Ballot 0, the grants committee, resolved 50 to 10 in staked weight
+  and paid its beneficiary 750 cGOV confidentially; ballot 1, the marketing
+  budget, resolved 10 to 50 and paid nothing. All staged by
   [contracts/scripts/stage-demo.ts](contracts/scripts/stage-demo.ts).
-- The full lifecycle is covered by 12 passing tests that run offline against the
-  FHEVM mock, including a vote of two yes and one no that reveals `passed` and
-  pays the beneficiary exactly 250 cGOV, decryptable only by that beneficiary:
+- The full lifecycle is covered by 20 passing tests that run offline against the
+  FHEVM mock, including one that tallies stake-weighted votes and reveals only
+  the aggregate weights, and one that keeps voter stakes safe even when a payout
+  would exceed the treasury:
   [contracts/test/ConfidentialBallot.ts](contracts/test/ConfidentialBallot.ts).
 - Negative proof: `resolve` calls `FHE.checkSignatures(handles, cleartexts,
-  decryptionProof)` before it trusts a count, so cleartexts that were not signed
-  by the KMS over those exact handles revert the transaction. Two tests also
-  prove `execute` refuses to pay a failed ballot and refuses to pay twice:
-  [contracts/contracts/ConfidentialBallot.sol](contracts/contracts/ConfidentialBallot.sol).
+  decryptionProof)` before it trusts a count, so cleartexts the KMS did not sign
+  over those exact handles revert. Tests also prove `execute` refuses to pay a
+  failed ballot and refuses to pay twice, `mint` is owner-only, and a vote
+  without operator authorization reverts:
+  [contracts/test/ConfidentialBallot.ts](contracts/test/ConfidentialBallot.ts).
 
 ## 🧪 Reproduce it
 
@@ -158,7 +167,7 @@ bun install
 bun run test
 ```
 
-Success is `12 passing`, run against the in-process FHEVM mock. The suite
+Success is `20 passing`, run against the in-process FHEVM mock. The suite
 deploys fresh contracts in memory on each run and touches no network and no
 deployed instance.
 
@@ -196,8 +205,9 @@ verify:sepolia` once `ETHERSCAN_API_KEY` is set.
   threshold operation run by Zama's coprocessor and key-management network. The
   contract verifies their signatures with `FHE.checkSignatures`; it does not
   replace them.
-- **Final tallies are public by design.** After `resolve`, the yes and no counts
-  are on-chain. Only the individual votes and the payout amount stay encrypted.
+- **Final tallies are public by design.** After `resolve`, the yes and no weight
+  totals are on-chain. Only the individual votes and the payout amount stay
+  encrypted.
 
 ## 🧩 Prior art
 

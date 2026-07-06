@@ -34,8 +34,9 @@ const BALLOT_STATE = { Active: 0n, Revealing: 1n, Resolved: 2n } as const;
 const FINISHED_BALLOT_DURATION_SECONDS = 420n;
 // 7 days keeps the live-demo ballot open through judging.
 const OPEN_BALLOT_DURATION_SECONDS = 7n * 24n * 3600n;
-// Gas money sent to voter accounts 1 and 2 (they only ever cast votes).
-const VOTER_TOP_UP_ETHER = "0.01";
+// Gas money the deployer sends to voter accounts 1 and 2. Each casts two
+// FHE-heavy votes on Sepolia, so 0.02 ETH leaves a margin over the ~0.01 pair.
+const VOTER_TOP_UP_ETHER = "0.02";
 // Operator authorization expiry, far in the future (a uint48 timestamp).
 const OPERATOR_UNTIL = 4102444800n; // 2100-01-01
 // Treasury funding per stage run, in whole cGOV (scaled by decimals below).
@@ -45,12 +46,34 @@ function logStep(message: string): void {
   console.log(`[stage-demo] ${message}`);
 }
 
+// Retries a relayer round-trip a few times on transient network failures. The
+// Zama testnet relayer occasionally closes the socket mid-request, which aborts
+// an otherwise valid input-proof or public-decrypt call. Backs off between tries.
+async function withRelayerRetry<T>(label: string, action: () => Promise<T>): Promise<T> {
+  const maxAttempts = 6;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await action();
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts) {
+        logStep(`${label}: relayer attempt ${attempt}/${maxAttempts} failed, retrying in ${attempt * 3}s`);
+        await new Promise((resolve) => setTimeout(resolve, attempt * 3000));
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function encryptAmountForContract(
   contractAddress: string,
   sender: HardhatEthersSigner,
   amount: bigint,
 ): Promise<{ handle: Uint8Array; inputProof: Uint8Array }> {
-  const encrypted = await fhevm.createEncryptedInput(contractAddress, sender.address).add64(amount).encrypt();
+  const encrypted = await withRelayerRetry("encrypt amount", () =>
+    fhevm.createEncryptedInput(contractAddress, sender.address).add64(amount).encrypt(),
+  );
   return { handle: encrypted.handles[0], inputProof: encrypted.inputProof };
 }
 
@@ -86,11 +109,9 @@ async function castWeightedVote(
   support: boolean,
   weight: bigint,
 ): Promise<void> {
-  const encrypted = await fhevm
-    .createEncryptedInput(BALLOT_ADDRESS, voter.address)
-    .addBool(support)
-    .add64(weight)
-    .encrypt();
+  const encrypted = await withRelayerRetry(`encrypt vote on ballot ${ballotId}`, () =>
+    fhevm.createEncryptedInput(BALLOT_ADDRESS, voter.address).addBool(support).add64(weight).encrypt(),
+  );
   const tx = await ballot
     .connect(voter)
     .vote(ballotId, encrypted.handles[0], encrypted.handles[1], encrypted.inputProof);
@@ -141,7 +162,9 @@ async function sweepExpiredBallots(ballot: ConfidentialBallot, caller: HardhatEt
 
     if (state === BALLOT_STATE.Revealing) {
       const [encryptedYes, encryptedNo] = await ballot.getEncryptedTallies(ballotId);
-      const decrypted = await fhevm.publicDecrypt([encryptedYes, encryptedNo]);
+      const decrypted = await withRelayerRetry(`decrypt tallies of ballot ${ballotId}`, () =>
+        fhevm.publicDecrypt([encryptedYes, encryptedNo]),
+      );
       const resolveTx = await ballot
         .connect(caller)
         .resolve(ballotId, decrypted.abiEncodedClearValues, decrypted.decryptionProof);
@@ -210,24 +233,36 @@ async function runStagePhase(
     payoutAmount: inWhole(2000n),
   });
 
-  // 7. Stake-weighted votes in three parallel lanes (one per signer, so nonces
-  //    never collide): grants ends 50 yes / 10 no (passes), marketing ends
-  //    10 yes / 50 no (rejected). Weights are in whole cGOV.
+  // 7. Stake-weighted votes, cast one at a time so the relayer only ever handles
+  //    a single input-proof request at once (concurrent requests occasionally
+  //    get the socket closed mid-flight). Each signer still keeps its own nonce
+  //    lane. Grants ends 50 yes / 10 no (passes), marketing ends 10 yes / 50 no
+  //    (rejected). Weights are in whole cGOV.
   const voteLanes: {
     voter: HardhatEthersSigner;
     grants: { support: boolean; weight: bigint };
     marketing: { support: boolean; weight: bigint };
   }[] = [
-    { voter: deployer, grants: { support: true, weight: inWhole(30n) }, marketing: { support: false, weight: inWhole(30n) } },
-    { voter: voterOne, grants: { support: true, weight: inWhole(20n) }, marketing: { support: true, weight: inWhole(10n) } },
-    { voter: voterTwo, grants: { support: false, weight: inWhole(10n) }, marketing: { support: false, weight: inWhole(20n) } },
+    {
+      voter: deployer,
+      grants: { support: true, weight: inWhole(30n) },
+      marketing: { support: false, weight: inWhole(30n) },
+    },
+    {
+      voter: voterOne,
+      grants: { support: true, weight: inWhole(20n) },
+      marketing: { support: true, weight: inWhole(10n) },
+    },
+    {
+      voter: voterTwo,
+      grants: { support: false, weight: inWhole(10n) },
+      marketing: { support: false, weight: inWhole(20n) },
+    },
   ];
-  await Promise.all(
-    voteLanes.map(async (lane) => {
-      await castWeightedVote(ballot, lane.voter, grantsBallotId, lane.grants.support, lane.grants.weight);
-      await castWeightedVote(ballot, lane.voter, marketingBallotId, lane.marketing.support, lane.marketing.weight);
-    }),
-  );
+  for (const lane of voteLanes) {
+    await castWeightedVote(ballot, lane.voter, grantsBallotId, lane.grants.support, lane.grants.weight);
+    await castWeightedVote(ballot, lane.voter, marketingBallotId, lane.marketing.support, lane.marketing.weight);
+  }
 
   // 8. The ballot that stays open for the live demo (created last so it sits on
   //    top of the newest-first list in the app).
