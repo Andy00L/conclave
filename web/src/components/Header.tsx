@@ -1,12 +1,14 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
-import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
+import { TriangleAlert, Wallet } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useAccount, useConnect, useDisconnect, useSwitchChain, type Connector } from "wagmi";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { microLabelClasses } from "@/components/ui/field";
 import { SealStamp } from "@/components/ui/SealStamp";
 import { SEPOLIA_CHAIN_ID } from "@/lib/addresses";
 import { shortenAddress } from "@/lib/format";
+import { clearManualDisconnect, markManualDisconnect, revokeWalletPermissions } from "@/lib/walletSession";
 
 /// Human phrasing for a failed connect attempt. Distinct failure modes get
 /// distinct, actionable lines; anything else surfaces the wallet's own words.
@@ -20,13 +22,79 @@ function describeConnectError(error: Error): string {
   return "shortMessage" in error && typeof error.shortMessage === "string" ? error.shortMessage : error.message;
 }
 
+// The generic injected connector (id "injected") has no wallet-specific name,
+// so it gets a friendly fallback label; discovered wallets carry their own.
+function walletLabel(connector: Connector): string {
+  return connector.id === "injected" ? "Browser wallet" : connector.name;
+}
+
 export function Header() {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, chainId, connector: activeConnector } = useAccount();
   const { connect, connectors, isPending, error: connectError } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: isSwitchPending } = useSwitchChain();
-  const injectedConnector = connectors[0];
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const onSepolia = chainId === SEPOLIA_CHAIN_ID;
+
+  // Discovered EIP-6963 wallets carry their own id and icon; the configured
+  // injected() fallback keeps its "injected" id. Prefer the discovered ones so
+  // the picker shows named wallets, and fall back to the generic entry when the
+  // browser exposes no EIP-6963 wallet.
+  const discoveredConnectors = connectors.filter((candidate) => candidate.id !== "injected");
+  const walletOptions = discoveredConnectors.length > 0 ? discoveredConnectors : [...connectors];
+
+  // Dismiss the wallet menu on an outside click or Escape.
+  // External system: document pointer and key events.
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (menuRef.current && target instanceof Node && !menuRef.current.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  // Connect and, in the same request, ask the wallet to move to Sepolia.
+  const connectWallet = (walletConnector: Connector) => {
+    clearManualDisconnect();
+    setIsMenuOpen(false);
+    connect({ connector: walletConnector, chainId: SEPOLIA_CHAIN_ID });
+  };
+
+  const onConnectClick = () => {
+    if (walletOptions.length <= 1) {
+      if (walletOptions[0]) connectWallet(walletOptions[0]);
+      return;
+    }
+    setIsMenuOpen((open) => !open);
+  };
+
+  // Mark the disconnect as deliberate and ask the wallet to forget the site, so
+  // a refresh does not silently reconnect (see lib/walletSession).
+  const disconnectWallet = async () => {
+    markManualDisconnect();
+    if (activeConnector) {
+      try {
+        const provider = await activeConnector.getProvider();
+        await revokeWalletPermissions(provider);
+      } catch {
+        // The provider is already gone; the disconnect flag still holds.
+      }
+    }
+    disconnect();
+  };
 
   return (
     // The header floats on the paper field: paper at 80% + blur so scrolling
@@ -62,15 +130,15 @@ export function Header() {
               {shortenAddress(address)}
             </span>
             <button
-              onClick={() => disconnect()}
+              onClick={() => void disconnectWallet()}
               className="h-9 cursor-pointer rounded-full px-3 text-sm font-medium text-muted transition-colors duration-150 ease-soft hover:bg-well hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
             >
               Disconnect
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            {connectError && (
+          <div ref={menuRef} className="relative flex items-center gap-3">
+            {connectError && !isMenuOpen && (
               <span role="alert" className="max-w-56 text-right text-xs leading-tight text-no">
                 {describeConnectError(connectError)}
               </span>
@@ -79,11 +147,31 @@ export function Header() {
               label="Connect wallet"
               pendingLabel="Connecting..."
               isPending={isPending}
-              disabled={!injectedConnector}
-              onClick={() => {
-                if (injectedConnector) connect({ connector: injectedConnector });
-              }}
+              onClick={onConnectClick}
             />
+            {isMenuOpen && (
+              <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-[18px] border border-line bg-card p-1.5 shadow-btn">
+                <p className={`${microLabelClasses} px-2.5 py-2`}>Choose a wallet</p>
+                {walletOptions.map((walletConnector) => (
+                  <button
+                    key={walletConnector.uid}
+                    onClick={() => connectWallet(walletConnector)}
+                    className="flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-left text-sm font-medium text-ink transition-colors duration-150 ease-soft hover:bg-well focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze/70"
+                  >
+                    {walletConnector.icon ? (
+                      <span
+                        aria-hidden="true"
+                        className="size-5 shrink-0 rounded bg-contain bg-center bg-no-repeat"
+                        style={{ backgroundImage: `url("${walletConnector.icon}")` }}
+                      />
+                    ) : (
+                      <Wallet size={18} className="shrink-0 text-muted" aria-hidden="true" />
+                    )}
+                    {walletLabel(walletConnector)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
