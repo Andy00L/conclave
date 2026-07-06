@@ -73,11 +73,9 @@ export function Header() {
     connect({ connector: walletConnector, chainId: SEPOLIA_CHAIN_ID });
   };
 
+  // Always open the picker so the detected wallets are shown, even when only
+  // one is installed (the user wants to see the list, not a silent connect).
   const onConnectClick = () => {
-    if (walletOptions.length <= 1) {
-      if (walletOptions[0]) connectWallet(walletOptions[0]);
-      return;
-    }
     setIsMenuOpen((open) => !open);
   };
 
