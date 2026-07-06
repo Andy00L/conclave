@@ -1,77 +1,101 @@
-# Conclave demo video script (3:00 max, pitched on camera or voice-over by a real person)
+# Conclave demo video script
 
-Rules from the track brief: a real person pitches (no AI voice or avatar), 3 minutes
-maximum. Record the screen at 1280 px or wider, wallet connected to Sepolia,
-app open on the dashboard with the staged ballots visible.
+Target cut: 0:00 to 0:15 intro animation, then about 2:00 of you talking over
+the screen. Total around 2:15, comfortably under the 3:00 cap. The track brief
+requires a real person pitching (no AI voice, no avatar), so record your own
+voice and speak like you would to a friend; the SAY blocks below are written
+the way people actually talk. Read them out loud twice before recording, then
+say them from memory. If you drift from the exact words, good: keep your own
+phrasing, keep the beats.
 
-Preparation before recording:
+## Recording setup (do this before pressing record)
 
-- Treasury funded, three staged ballots visible: the open grant-round ballot on
-  top, the passed-and-paid audit ballot, the rejected buyback ballot.
-- Wallet holds Sepolia ETH; a second browser profile or wallet account ready to
-  show the beneficiary decrypting their balance.
-- One Etherscan tab open on the ConfidentialBallot contract, one on a vote
-  transaction, to show what an observer sees: handles, not values.
+- Open `docs/submission/intro-animation.html` full screen in the browser
+  (press F11). You will record it as the first 15 seconds: start recording,
+  press Space, let it play to the end card.
+- App open on https://conclave-alpha.vercel.app, wallet connected, Sepolia,
+  1280 px wide or more. The staged ballots visible: the open grant-round
+  ballot on top, the passed audit ballot, the rejected one.
+- Wallet holds Sepolia ETH (the Test tokens card in the app covers this).
+- A second browser profile with the beneficiary account, ready on the
+  treasury card, balance still sealed.
+- One Etherscan tab open on a vote transaction from the ConfidentialBallot
+  contract.
+- Hide bookmarks bar, close extra tabs, mute notifications.
 
-## 0:00 to 0:25, the problem (face to camera if possible)
+---
 
-"On-chain governance has a privacy problem. Every vote is public, so whales get
-watched and copied, votes can be bought because the buyer can verify them, and
-anyone voting against a proposal does it in the open. Conclave fixes this with
-Zama's FHEVM: votes are encrypted end to end, the chain tallies them without
-ever seeing them, and only the final outcome is revealed."
+## 0:00 to 0:15, intro animation
 
-## 0:25 to 0:55, cast an encrypted vote
+DO: play the recorded intro animation. No talking, or start talking over its
+last two seconds if the silence feels long.
 
-Screen: the open grant-round ballot. Click "Vote yes".
+## 0:15 to 0:35, who I am and what this is
 
-"I am voting on a live ballot on Sepolia. The choice is encrypted in my browser
-before it goes anywhere; the contract receives a ciphertext and a proof, and
-adds an encrypted one to exactly one of two sealed tallies. Watch the ballot
-card: it confirms my vote is in, but there is no count to show, because the
-count itself is encrypted."
+DO: dashboard visible, cursor still.
 
-Switch briefly to the Etherscan tab on the vote transaction.
+SAY: "Hey, so this is my submission for the Zama Developer Program, Season 3,
+Builder track. It's called Conclave, and basically it's DAO voting where
+nobody can see your vote. Not the other voters, not the whales watching the
+chain, not even the contract itself. And everything I'm about to show you is
+live on Sepolia right now."
 
-"This is what everyone else sees: a transaction with an encrypted handle. No
-choice, no running tally, nothing to front-run or retaliate against."
+## 0:35 to 1:05, cast an encrypted vote
 
-## 0:55 to 1:40, reveal only the outcome
+DO: scroll to the open grant-round ballot. Click "Vote yes", let the
+"Encrypting vote..." state show, confirm in MetaMask, wait for the card to
+confirm the vote is in.
 
-Screen: the audit ballot (already resolved) and the buyback ballot.
+SAY: "So let me just vote on this open ballot. I pick yes... and before
+anything leaves my browser, my choice gets encrypted. The contract receives a
+ciphertext and a proof, and it adds an encrypted one to one of two sealed
+counters. And look at the card: it knows my vote is in, but there's no count
+anywhere. That's not a UI choice, the count itself is encrypted."
 
-"When the voting window ends, anyone can close the ballot. That marks the two
-tallies publicly decryptable, Zama's key-management network threshold-decrypts
-them, and the contract verifies the KMS signatures on-chain before accepting
-the result. Here is one that passed, two to one, and one that was rejected.
-The bar shows the aggregate; the individual votes stay encrypted forever."
+DO: switch to the Etherscan tab on a vote transaction, hover the input data.
 
-## 1:40 to 2:25, the confidential payout
+SAY: "This is the same kind of vote on Etherscan. It's just a handle. No
+choice, no running tally, nothing to copy, nothing to retaliate against."
 
-Screen: the passed audit ballot, "Confidential payout sent" state, then the
-treasury card in the beneficiary's browser profile.
+## 1:05 to 1:35, reveal only the outcome
 
-"This is the part I like most. Each ballot carries a beneficiary and a payout
-amount that was encrypted at creation. When the audit ballot passed, the
-contract paid the beneficiary from its treasury with an ERC-7984 confidential
-transfer. The amount never appeared in clear on-chain. As the beneficiary, I
-sign one EIP-712 message and decrypt my own balance: 500 cGOV. Nobody else can
-read it."
+DO: back to the app, scroll to the resolved ballots. Let the tally bars and
+the seal stamps play; pause on the passed one, then the rejected one.
 
-## 2:25 to 3:00, close
+SAY: "When the voting window ends, anyone can close the ballot. Zama's key
+management network decrypts just the two totals, and the contract verifies
+their signatures on-chain before it accepts a single number. So here's one
+that passed, two to one. Here's one that got rejected. You get the outcome,
+and the individual votes stay sealed forever."
 
-Screen: back to the dashboard.
+## 1:35 to 2:05, the confidential payout
 
-"Everything you saw is live on Sepolia: encrypted ballots, KMS-verified
-reveals, and confidential treasury payouts, end to end. The contracts and the
-app are open source, and the README has the addresses so you can vote on the
-grant-round ballot yourself. Private votes, public outcomes, confidential
-money: that is Conclave."
+DO: point at the passed ballot's "Confidential payout sent" line. Then switch
+to the beneficiary profile, treasury card, click "Decrypt", sign the message,
+let the balance appear.
+
+SAY: "And this is my favorite part. Every ballot carries a payout amount that
+was encrypted when the ballot was created. This one passed, so the contract
+paid the beneficiary from its treasury, and the amount never appeared in
+clear on-chain. Now, if I'm the beneficiary, I sign one message... and I can
+decrypt my own balance. Five hundred cGOV. Nobody else can read that number."
+
+## 2:05 to 2:15, close
+
+DO: back to the dashboard, hero visible, cursor still.
+
+SAY: "So that's Conclave. Private votes, public outcomes, confidential money.
+It's all open source, links are below, and there's an open ballot on Sepolia
+right now if you want to cast an encrypted vote yourself. Thanks for
+watching."
+
+---
 
 ## Shot checklist
 
+- [ ] Intro animation plays clean, no cursor, no hint text in frame
 - [ ] Vote cast on camera with the "Encrypting vote..." state visible
 - [ ] Etherscan view of a vote transaction (handles only)
-- [ ] Resolved ballot with the yes/no bar (passed) and one rejected
-- [ ] Payout state plus beneficiary decrypting 500 cGOV
-- [ ] Under 3:00 total
+- [ ] One passed bar (2 to 1) and one rejected, seal stamps visible
+- [ ] Beneficiary decrypts 500 cGOV on camera
+- [ ] Total under 3:00 (target 2:15)

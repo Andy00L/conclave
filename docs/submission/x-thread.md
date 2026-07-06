@@ -1,43 +1,85 @@
-# X thread draft (submission requirement: a thread or article presenting the project)
+# X thread (submission requirement: a thread presenting the project)
 
-Post from your own account. Attach: the hero screenshot on tweet 1, the
-resolved-ballot screenshot on tweet 3, the beneficiary balance screenshot on
-tweet 4. Replace LIVE_URL with the deployed app URL before posting.
+Post from your own account. Short lines on purpose: one idea per line, a blank
+line between ideas. Read each tweet out loud once; if a line sounds like a
+press release, cut it. Images to attach are listed under each tweet; capture
+them from the live app at conclave-alpha.vercel.app (wallet connected, Sepolia).
 
 ---
 
 Tweet 1
 
-On-chain votes are public. That means whale-watching, vote buying, and voting
-against a proposal with your name attached.
+Attach: hero screenshot of the dashboard (docs/screenshots/01-dashboard.png or
+a fresh capture).
 
-Conclave runs DAO ballots where every vote is encrypted end to end, and only
-the outcome is ever revealed. Built on @zama_fhe FHEVM, live on Sepolia.
+your DAO vote is public.
+
+anyone can watch it. anyone can buy it. anyone can hold it against you.
+
+so I built Conclave: DAO ballots where every vote is encrypted end to end,
+and the chain counts them without ever reading them.
+
+live on Sepolia. thread:
+
+---
 
 Tweet 2
 
-How it works: your choice is encrypted in the browser. The contract adds an
-encrypted 1 to one of two sealed tallies with FHE.select, so there is no
-running count to read, ever. On Etherscan a vote is just a handle and a proof.
+Attach: short screen recording of clicking "Vote yes" with the
+"Encrypting vote..." state visible (10 to 15 seconds).
+
+how voting works:
+
+your choice is encrypted in the browser. before it goes anywhere.
+
+the contract gets a ciphertext and a proof, and adds an encrypted +1 to one
+of two sealed tallies.
+
+on Etherscan your vote is a handle. no choice. no running count. nothing to
+front-run.
+
+---
 
 Tweet 3
 
-When voting ends, the tallies (and nothing else) are threshold-decrypted by
-Zama's KMS. The contract checks the KMS signatures on-chain before trusting
-the result. Aggregate revealed, individual votes sealed forever.
+Attach: screenshot of a resolved ballot, tally bar and seal stamp visible.
+
+when voting ends, only the two totals get decrypted.
+
+Zama's key management network does the threshold decryption. the contract
+checks the KMS signatures on-chain before trusting a single number.
+
+the outcome: public.
+your vote: sealed forever.
+
+---
 
 Tweet 4
 
-The part that makes treasurers smile: each ballot carries an encrypted payout.
-If it passes, the beneficiary is paid in ERC-7984 confidential tokens. The
-amount never appears in clear. They decrypt their own balance with one EIP-712
-signature.
+Attach: screenshot of the treasury card showing the decrypted balance
+(500 cGOV).
+
+my favorite part is the money.
+
+every ballot carries a payout amount, encrypted at creation.
+
+if the ballot passes, the beneficiary gets paid in confidential ERC-7984
+tokens. the amount never appears in clear.
+
+they sign one message and decrypt their own balance. nobody else can.
+
+---
 
 Tweet 5
 
-Private votes, public outcomes, confidential money.
+No image; let the links preview.
 
-Try it on Sepolia: LIVE_URL
-Contracts + code: https://github.com/Andy00L/conclave
+private votes. public outcomes. confidential money.
 
-Built for the Zama Developer Program Season 3 Builder Track.
+try it, there's an open ballot you can vote on right now:
+https://conclave-alpha.vercel.app
+
+code and contracts:
+https://github.com/Andy00L/conclave
+
+built on @zama_fhe FHEVM for the Developer Program, Mainnet Season 3.
