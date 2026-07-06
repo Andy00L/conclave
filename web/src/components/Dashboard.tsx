@@ -103,11 +103,9 @@ export function Dashboard() {
               <div className="animate-rise" style={{ animationDelay: `${TREASURY_DELAY_MS}ms` }}>
                 <TreasuryCard />
               </div>
-              {isConnected && (
-                <div className="animate-rise" style={{ animationDelay: `${FAUCET_DELAY_MS}ms` }}>
-                  <FaucetCard />
-                </div>
-              )}
+              <div className="animate-rise" style={{ animationDelay: `${FAUCET_DELAY_MS}ms` }}>
+                <FaucetCard />
+              </div>
             </div>
           </div>
         </>

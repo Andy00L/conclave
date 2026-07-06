@@ -104,6 +104,12 @@ export function FaucetCard() {
         </div>
       </div>
 
+      {!isConnected && (
+        <p className="mt-3 text-[13px] text-muted">
+          The ETH faucet opens without connecting. Connect a wallet to mint cGOV straight to it.
+        </p>
+      )}
+
       {hasMinted && !error && (
         <p className="animate-fade mt-3 flex items-start gap-1.5 text-[13px] text-muted">
           <Check size={14} className="mt-px shrink-0 text-bronze" aria-hidden="true" />
